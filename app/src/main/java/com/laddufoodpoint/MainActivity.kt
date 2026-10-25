@@ -34,10 +34,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val Ink=Color(0xFF191916)
-private val Gold=Color(0xFFFFC928)
-private val Cream=Color(0xFFFFFBF1)
-private val Muted=Color(0xFF77766F)
+private val Ink=Color(0xFF202124)
+private val Gold=Color(0xFFE23744)
+private val Cream=Color(0xFFFFFFFF)
+private val Muted=Color(0xFF777B82)
 private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null)
 private data class Line(val food:Food,val variant:String,val price:Int,val qty:Int)
 private val menu=listOf(
@@ -114,11 +114,11 @@ class MainActivity:ComponentActivity(){
  lastOrder->Column(Modifier.padding(padding).fillMaxSize().padding(26.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
  Box(Modifier.size(78.dp).background(Gold,CircleShape),contentAlignment=Alignment.Center){Text("✓",fontSize=42.sp,fontWeight=FontWeight.Black)}
  Spacer(Modifier.height(18.dp));Text("Order placed!",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
- Text(orderNumber,fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color(0xFF18794E))
+ Text(orderNumber,fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color(0xFFE23744))
  Text("Your order summary",color=Muted)
  Spacer(Modifier.height(14.dp))
  Surface(color=Color.White,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Color(0xFFE4F1E8),CircleShape),contentAlignment=Alignment.Center){Text("1",fontWeight=FontWeight.Bold,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("Order received",fontWeight=FontWeight.Bold);Text("Waiting for restaurant confirmation",fontSize=12.sp,color=Muted)}}
+ Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Color(0xFFFFE8EA),CircleShape),contentAlignment=Alignment.Center){Text("1",fontWeight=FontWeight.Bold,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("Order received",fontWeight=FontWeight.Bold);Text("Waiting for restaurant confirmation",fontSize=12.sp,color=Muted)}}
  Divider(color=Color(0xFFECEBE5))
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Cream,CircleShape),contentAlignment=Alignment.Center){Text("2",fontWeight=FontWeight.Bold,color=Muted)};Spacer(Modifier.width(10.dp));Column{Text("Preparing your food",fontWeight=FontWeight.Bold);Text("Status updates are not live in this demo",fontSize=12.sp,color=Muted)}}
  Text("$fulfillment · $paymentMethod",fontSize=12.sp,color=Muted)
@@ -237,7 +237,7 @@ private fun HomePage(
         }
         if (!filterMenu && search.isBlank()) {
             item {
-                Surface(color = Color(0xFF123D2B), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+                Surface(color = Color(0xFFB91C2B), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("FRESHLY MADE • FULL OF FLAVOUR", fontSize = 9.sp, color = Color(0xFFFFD66B), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -246,7 +246,7 @@ private fun HomePage(
                             Spacer(Modifier.height(7.dp))
                             Text("Everyday favourites, made with care.", fontSize = 12.sp, color = Color(0xFFE0EAE3))
                             Spacer(Modifier.height(14.dp))
-                            Button(onClick = onMenu, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD166)), shape = RoundedCornerShape(12.dp)) {
+                            Button(onClick = onMenu, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC857)), shape = RoundedCornerShape(12.dp)) {
                                 Text("Explore menu  →", color = Color(0xFF123D2B), fontWeight = FontWeight.Bold)
                             }
                         }
