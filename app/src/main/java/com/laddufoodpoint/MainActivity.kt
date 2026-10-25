@@ -272,8 +272,7 @@ private fun HomePage(
                             Column(Modifier.weight(1f)) {
                                 Text("MADE FRESH, SERVED HOT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Gold, letterSpacing = 1.sp)
                                 Spacer(Modifier.height(5.dp))
-                                Text("Your everyday food cravings,
-sorted.", fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                Text("Your everyday food cravings, sorted.", fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                                 Spacer(Modifier.height(10.dp))
                                 Text("Rice • Noodles • Chicken • Roti", fontSize = 11.sp, color = Color(0xFFE1E1E1))
                             }
