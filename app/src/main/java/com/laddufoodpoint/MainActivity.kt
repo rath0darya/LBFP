@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -204,128 +205,105 @@ private fun HomePage(
     onFoodClick: (Food) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
-    val filtered = menu.filter {
-        (category == "ALL" || it.category == category) &&
-        (search.isBlank() || it.name.contains(search.trim(), ignoreCase = true))
+    var vegOnly by remember { mutableStateOf(false) }
+    val categories = listOf("ALL", "NON-VEG", "VEG", "ROTI")
+    val filtered = menu.filter { f ->
+        (category == "ALL" || f.category == category) &&
+        (!vegOnly || f.category == "VEG") &&
+        (search.isBlank() || f.name.contains(search.trim(), ignoreCase = true))
     }
     LazyColumn(
         modifier = Modifier.padding(padding).fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFF18794E), modifier = Modifier.size(17.dp))
-                        Spacer(Modifier.width(5.dp))
-                        Text("DELIVERING TO YOUR AREA", fontSize = 10.sp, color = Muted, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(top = 12.dp, bottom = 14.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(if (filterMenu) "LADDU BHAI FOOD POINT" else "GOOD FOOD. GOOD MOOD.", fontSize = 10.sp, color = Muted, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp)
+                        Spacer(Modifier.height(5.dp))
+                        Text(if (filterMenu) "Explore menu" else "What are you craving?", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        Text("Freshly prepared favourites, made to order", fontSize = 12.sp, color = Muted)
                     }
-                    Text("What are you craving?", fontSize = 25.sp, lineHeight = 30.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                    Text("Laddu Bhai Food Point", fontSize = 13.sp, color = Muted)
+                    Surface(color = Color(0xFFFFF0E5), shape = RoundedCornerShape(15.dp)) {
+                        Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("LB", color = Gold, fontWeight = FontWeight.Black, fontSize = 21.sp)
+                            Text("FOOD", color = Ink, fontWeight = FontWeight.ExtraBold, fontSize = 8.sp, letterSpacing = 1.sp)
+                        }
+                    }
                 }
-                Box(Modifier.size(48.dp).background(Color(0xFFE4F1E8), CircleShape), contentAlignment = Alignment.Center) {
-                    Text("LB", color = Color(0xFF18794E), fontWeight = FontWeight.Black, fontSize = 17.sp)
-                }
-            }
-        }
-        item {
-            OutlinedTextField(
-                value = search, onValueChange = { search = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search chicken, noodles, fried rice…", color = Muted, fontSize = 14.sp) },
-                leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = "Search menu", tint = Color(0xFF18794E)) },
-                trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Remove, contentDescription = "Clear search") } },
-                singleLine = true, shape = RoundedCornerShape(17.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White, focusedContainerColor = Color.White,
-                    unfocusedBorderColor = Color(0xFFE8E7E0), focusedBorderColor = Color(0xFF18794E)
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = search, onValueChange = { search = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Search for dishes", color = Muted, fontSize = 14.sp) },
+                    leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = "Search dishes", tint = Ink) },
+                    trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Remove, contentDescription = "Clear search") } },
+                    singleLine = true, shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.White, focusedContainerColor = Color.White,
+                        unfocusedBorderColor = Color(0xFFE2E2E2), focusedBorderColor = Ink
+                    )
                 )
-            )
+            }
         }
         if (!filterMenu && search.isBlank()) {
             item {
-                Surface(color = Color(0xFFFC8019), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("FRESHLY MADE • FULL OF FLAVOUR", fontSize = 9.sp, color = Color(0xFFFFD66B), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            Spacer(Modifier.height(9.dp))
-                            Text("Cravings?\nConsider them handled.", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                            Spacer(Modifier.height(7.dp))
-                            Text("Everyday favourites, made with care.", fontSize = 12.sp, color = Color(0xFFE0EAE3))
-                            Spacer(Modifier.height(14.dp))
-                            Button(onClick = onMenu, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFC857)), shape = RoundedCornerShape(12.dp)) {
-                                Text("Explore menu  →", color = Color(0xFF123D2B), fontWeight = FontWeight.Bold)
+                Column(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listOf(Triple("Veg", "🥬", "VEG"), Triple("Non-veg", "🍗", "NON-VEG"), Triple("Roti & naan", "🫓", "ROTI")).forEach { (title, emoji, key) ->
+                            Column(Modifier.weight(1f).clickable { onCategory(key) }, horizontalAlignment = Alignment.CenterHorizontally) {
+                                Surface(color = Color(0xFFF5F5F5), shape = CircleShape, modifier = Modifier.size(74.dp)) {
+                                    Box(contentAlignment = Alignment.Center) { Text(emoji, fontSize = 34.sp) }
+                                }
+                                Spacer(Modifier.height(7.dp))
+                                Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Ink, maxLines = 1)
                             }
                         }
-                        Spacer(Modifier.width(6.dp))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            AsyncImage(model=foodPhoto(menu[2]),contentDescription="Freshly prepared food",contentScale=ContentScale.Crop,modifier=Modifier.size(94.dp).clip(RoundedCornerShape(20.dp)))
-                            Spacer(Modifier.height(7.dp))
-                            Text("MADE FRESH", fontSize = 8.sp, color = Color(0xFFFFD166), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        }
                     }
-                }
-            }
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    listOf(Triple("VEG", "🥬", "Fresh & tasty"), Triple("NON-VEG", "🍗", "Hearty bites"), Triple("ROTI", "🫓", "Hot & soft")).forEach { (c, emoji, subtitle) ->
-                        Surface(
-                            color = Color.White, shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.weight(1f).clickable { onCategory(c) }
-                        ) {
-                            Column(Modifier.padding(vertical = 13.dp, horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(emoji, fontSize = 27.sp)
+                    Spacer(Modifier.height(18.dp))
+                    Surface(color = Color(0xFF202124), shape = RoundedCornerShape(0.dp), modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(horizontal = 20.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("MADE FRESH, SERVED HOT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Gold, letterSpacing = 1.sp)
                                 Spacer(Modifier.height(5.dp))
-                                Text(c, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                                Text(subtitle, fontSize = 8.sp, color = Muted, maxLines = 1)
+                                Text("Your everyday food cravings,
+sorted.", fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                                Spacer(Modifier.height(10.dp))
+                                Text("Rice • Noodles • Chicken • Roti", fontSize = 11.sp, color = Color(0xFFE1E1E1))
                             }
+                            AsyncImage(model=foodPhoto(menu[4]),contentDescription="Chicken dish",contentScale=ContentScale.Crop,modifier=Modifier.size(94.dp).clip(RoundedCornerShape(14.dp)))
                         }
-                    }
-                }
-            }
-            item {
-                Surface(color = Color(0xFFFFE7A8), shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("MAKING MEMORIES OVER FOOD?", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Ink, letterSpacing = .7.sp)
-                            Text("WE UNDERTAKE ALL PARTY ORDERS", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                            Text("Let us be part of your celebration.", fontSize = 11.sp, color = Ink)
-                        }
-                        Text("✦", fontSize = 36.sp, color = Color(0xFF8B5B0A))
                     }
                 }
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(if (filterMenu) "Explore our menu" else if (search.isNotBlank()) "Search results" else "Popular at LBFP", fontSize = 23.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                Text(if (search.isNotBlank()) "${filtered.size} items found" else "Your favourites, freshly prepared", fontSize = 12.sp, color = Muted)
-            }
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                listOf("ALL", "NON-VEG", "VEG", "ROTI").forEach { c ->
-                    FilterChip(
-                        selected = category == c, onClick = { onCategory(c) },
-                        label = { Text(c, fontSize = 10.sp, fontWeight = FontWeight.SemiBold) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF18794E), selectedLabelColor = Color.White,
-                            selectedLeadingIconColor = Color.White
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp)) {
+                Text(if (search.isNotBlank()) "Search results" else if (filterMenu) "Full menu" else "Popular dishes", fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                Spacer(Modifier.height(3.dp))
+                Text(if (search.isNotBlank()) "${filtered.size} dishes found" else "Laddu Bhai Food Point · ${filtered.size} items", fontSize = 12.sp, color = Muted)
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                    categories.forEach { c ->
+                        FilterChip(
+                            selected = category == c, onClick = { onCategory(c) },
+                            label = { Text(if (c == "ALL") "All" else c.lowercase().replaceFirstChar { it.uppercase() }, fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
+                            colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Ink, selectedLabelColor = Color.White)
                         )
-                    )
+                    }
+                    FilterChip(selected = vegOnly, onClick = { vegOnly = !vegOnly; if (vegOnly) onCategory("ALL") }, label = { Text("🟢 Veg", fontSize = 11.sp) },
+                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFFE1F2E5), selectedLabelColor = Color(0xFF18794E)))
                 }
             }
         }
         if (filtered.isEmpty()) {
             item {
-                Surface(color = Color.White, shape = RoundedCornerShape(18.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🔎", fontSize = 32.sp)
-                        Text("No dishes found", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text("Try another dish name or category.", color = Muted, fontSize = 12.sp)
-                        TextButton(onClick = { search = ""; onCategory("ALL") }) { Text("Clear filters") }
-                    }
+                Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No dishes found", fontWeight = FontWeight.Bold, fontSize = 19.sp, color = Ink)
+                    Text("Try a different search or filter.", color = Muted, fontSize = 13.sp)
+                    TextButton(onClick = { search = ""; vegOnly = false; onCategory("ALL") }) { Text("Clear filters") }
                 }
             }
         } else {
@@ -334,50 +312,62 @@ private fun HomePage(
             }
         }
         item {
-            Surface(color = Color.White, shape = RoundedCornerShape(18.dp)) {
-                Column(Modifier.fillMaxWidth().padding(17.dp)) {
-                    Text("Laddu Bhai Food Point", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
-                    Text("Good Food, Happy Mood", color = Muted)
-                    Spacer(Modifier.height(7.dp))
-                    Text("WE UNDERTAKE ALL PARTY ORDERS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
-                }
+            Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                Divider(color = Color(0xFFEAEAEA))
+                Spacer(Modifier.height(14.dp))
+                Text("Laddu Bhai Food Point", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                Text("Freshly prepared food · Party orders welcome", color = Muted, fontSize = 12.sp)
             }
         }
     }
 }
+
 @Composable private fun FoodCard(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,onClick:(Food)->Unit){
- val accent=when(f.category){"VEG"->Color(0xFF27834A);"ROTI"->Color(0xFF9A6414);else->Color(0xFFFC8019)}
- Surface(color=Color.White,shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{onClick(f)},border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFF0F0F0))){
-  Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
-   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top){
-    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)){
-     Row(verticalAlignment=Alignment.CenterVertically){
-      Box(Modifier.size(12.dp).background(accent,RoundedCornerShape(3.dp)))
-      Spacer(Modifier.width(5.dp))
-      Text(when(f.category){"VEG"->"VEG";"ROTI"->"ROTI";else->"NON-VEG"},fontSize=9.sp,color=accent,fontWeight=FontWeight.ExtraBold,letterSpacing=.6.sp)
-     }
-     Text(f.name,fontSize=17.sp,fontWeight=FontWeight.Bold,color=Ink,maxLines=2,overflow=TextOverflow.Ellipsis,lineHeight=21.sp)
-     Text(if(f.plate!=null)"₹${f.single} · Single   |   ₹${f.plate} · Plate" else "₹${f.single} per serving",fontSize=13.sp,color=Ink,fontWeight=FontWeight.SemiBold)
-     Text("Freshly prepared • Made to order",fontSize=11.sp,color=Muted,maxLines=1)
+    val accent = if (f.category == "VEG") Color(0xFF27834A) else if (f.category == "ROTI") Color(0xFF9A6414) else Color(0xFFB33A2B)
+    val singleQty = cart[itemKey(f, "Single")]?.qty ?: 0
+    val plateQty = cart[itemKey(f, "Plate")]?.qty ?: 0
+    Row(
+        Modifier.fillMaxWidth().background(Color.White).clickable { onClick(f) }.padding(horizontal = 18.dp, vertical = 15.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(10.dp).background(Color.White, RoundedCornerShape(2.dp)).padding(1.dp).border(1.dp, accent, RoundedCornerShape(2.dp)))
+                Spacer(Modifier.width(5.dp))
+                Text(f.category, fontSize = 9.sp, color = accent, fontWeight = FontWeight.ExtraBold, letterSpacing = .6.sp)
+            }
+            Text(f.name, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 20.sp)
+            Text(if (f.plate != null) "₹${f.single}  ·  Single" else "₹${f.single} per serving", fontSize = 13.sp, color = Ink, fontWeight = FontWeight.SemiBold)
+            Text("Freshly prepared", fontSize = 11.sp, color = Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (singleQty == 0) {
+                    OutlinedButton(onClick = { onAdd(f, "Single", f.single) }, contentPadding = PaddingValues(horizontal = 13.dp, vertical = 0.dp), modifier = Modifier.height(34.dp), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF168044))) {
+                        Text("ADD +", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF168044))
+                    }
+                } else {
+                    Surface(color = Color(0xFF168044), shape = RoundedCornerShape(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.height(34.dp).padding(horizontal = 3.dp)) {
+                            IconButton(onClick = { onRemove(f, "Single") }, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Remove, null, tint = Color.White, modifier = Modifier.size(15.dp)) }
+                            Text("$singleQty", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            IconButton(onClick = { onAdd(f, "Single", f.single) }, modifier = Modifier.size(28.dp)) { Icon(Icons.Default.Add, null, tint = Color.White, modifier = Modifier.size(15.dp)) }
+                        }
+                    }
+                }
+                if (f.plate != null) {
+                    Text("Plate ₹${f.plate}", fontSize = 11.sp, color = Muted)
+                }
+            }
+        }
+        Box {
+            AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.size(116.dp,112.dp).clip(RoundedCornerShape(12.dp)))
+            if (f.plate != null) {
+                Surface(color = Color.White, shape = RoundedCornerShape(7.dp), modifier = Modifier.align(Alignment.BottomCenter).offset(y = 7.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE6E6E6))) {
+                    Text(if (plateQty > 0) "PLATE · $plateQty" else "PLATE ₹${f.plate}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 9.sp, color = Ink, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
-    Spacer(Modifier.width(10.dp))
-    Box{
-     AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.size(116.dp,108.dp).clip(RoundedCornerShape(14.dp)))
-     Surface(color=Color.White,shape=RoundedCornerShape(9.dp),border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFFC8019)),modifier=Modifier.align(Alignment.BottomCenter).offset(y=10.dp)){
-      Row(Modifier.padding(horizontal=15.dp,vertical=6.dp),verticalAlignment=Alignment.CenterVertically){
-       Text(if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)>0)"ADDED" else "ADD",fontSize=12.sp,color=Color(0xFFFC8019),fontWeight=FontWeight.ExtraBold)
-       if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)==0)Text(" +",fontSize=14.sp,color=Color(0xFFFC8019),fontWeight=FontWeight.ExtraBold)
-      }
-     }
-    }
-   }
-   Divider(color=Color(0xFFF0F0F0))
-   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-    PriceOption(f,"Single",f.single,cart,onAdd,onRemove,Modifier.weight(1f))
-    if(f.plate!=null)PriceOption(f,"Plate",f.plate,cart,onAdd,onRemove,Modifier.weight(1f))
-   }
-  }
- }
+    Divider(Modifier.padding(horizontal = 18.dp), color = Color(0xFFECECEC))
 }
 @Composable private fun PriceOption(f:Food,v:String,p:Int,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,modifier:Modifier){
  val qty=cart[itemKey(f,v)]?.qty?:0
