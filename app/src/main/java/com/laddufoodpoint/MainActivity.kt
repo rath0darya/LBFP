@@ -58,7 +58,7 @@ class MainActivity:ComponentActivity(){
 @Composable private fun LBFPApp(){
  val context = LocalContext.current
  val prefs = remember { context.getSharedPreferences("lbfp_customer_data", android.content.Context.MODE_PRIVATE) }
- var tab by remember{mutableStateOf("Home")}
+ var tab by remember{mutableStateOf("Home")}\n var selectedFood by remember{mutableStateOf<Food?>(null)}
  var category by remember{mutableStateOf("ALL")}
  var cart by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("cart","[]")); buildMap<String,Line> { for(i in 0 until a.length()){ val o=a.getJSONObject(i); val f=menu.firstOrNull { it.name==o.optString("name") } ?: continue; val v=o.optString("variant"); val p=o.optInt("price"); val q=o.optInt("qty"); if(q>0 && p>0) put(itemKey(f,v),Line(f,v,p,q)) } } }.getOrDefault(emptyMap()))}
  var cartOpen by remember{mutableStateOf(false)}
@@ -90,7 +90,7 @@ class MainActivity:ComponentActivity(){
  Text("FOOD POINT  ·  GOOD FOOD, HAPPY MOOD",fontSize=9.sp,color=Muted,letterSpacing=1.sp)
  }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
  },bottomBar={
- if(!cartOpen&&!checkout&&!lastOrder) NavigationBar(containerColor=Color.White){
+ if(!cartOpen&&!checkout&&!lastOrder&&selectedFood==null) NavigationBar(containerColor=Color.White){
  NavigationBarItem(selected=tab=="Home",onClick={tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
  NavigationBarItem(selected=tab=="Menu",onClick={tab="Menu"},icon={Icon(Icons.Default.MenuBook,null)},label={Text("Menu")})
  NavigationBarItem(selected=tab=="Orders",onClick={tab="Orders"},icon={Icon(Icons.Default.ReceiptLong,null)},label={Text("Orders")})
@@ -161,7 +161,7 @@ class MainActivity:ComponentActivity(){
  onAdd={f,v,price->changeQty(cart,{cart=it},Line(f,v,price,cart[itemKey(f,v)]?.qty?:0),1)},
  onRemove={f,v->val l=cart[itemKey(f,v)]?:return@HomePage;changeQty(cart,{cart=it},l,-1)},
  onMenu={tab="Menu"},
- filterMenu=tab=="Menu")
+ filterMenu=tab=="Menu",onFoodClick={selectedFood=it})
  }
  }
  }
@@ -308,7 +308,7 @@ private fun HomePage(
             }
         } else {
             items(filtered, key = { it.name }) { food ->
-                FoodCard(food, cart, onAdd, onRemove)
+                FoodCard(food, cart, onAdd, onRemove, onFoodClick)
             }
         }
         item {
@@ -323,10 +323,10 @@ private fun HomePage(
         }
     }
 }
-@Composable private fun FoodCard(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit){
+@Composable private fun FoodCard(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,onClick:(Food)->Unit){
  val accent=when(f.category){"VEG"->Color(0xFF247447);"ROTI"->Color(0xFF9A6414);else->Color(0xFFB7352B)}
  val symbol=when(f.category){"VEG"->"V";"ROTI"->"R";else->"N"}
- Surface(color=Color.White,shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth(),tonalElevation=1.dp){
+ Surface(color=Color.White,shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth().clickable{onClick(f)},tonalElevation=1.dp){
  Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(13.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){
   Box(Modifier.size(5.dp,48.dp).background(accent,RoundedCornerShape(50)))
@@ -371,4 +371,32 @@ private fun HomePage(
 private fun changeQty(cart:Map<String,Line>,set:(Map<String,Line>)->Unit,line:Line,delta:Int){
  val k=itemKey(line.food,line.variant);val old=cart[k];val qty=(old?.qty?:line.qty)+delta
  set(if(qty<=0)cart-k else cart+(k to line.copy(qty=qty)))
+}
+
+@Composable private fun FoodDetailPage(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onBack:()->Unit,onRemove:(Food,String)->Unit){
+ var variant by remember(f.name){mutableStateOf("Single")}
+ var qty by remember(f.name){mutableIntStateOf(1)}
+ val price=if(variant=="Plate") (f.plate?:f.single) else f.single
+ Column(Modifier.fillMaxSize().background(Cream).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
+  TextButton(onClick=onBack){Text("← Back to menu",color=Ink)}
+  Surface(color=Color(0xFF123D2B),shape=RoundedCornerShape(28.dp),modifier=Modifier.fillMaxWidth()){
+   Column(Modifier.fillMaxWidth().padding(24.dp),horizontalAlignment=Alignment.CenterHorizontally){
+    Text(when(f.category){"VEG"->"🥬";"ROTI"->"🫓";else->"🍗"},fontSize=76.sp)
+    Text(f.name,fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
+    Text(when(f.category){"VEG"->"VEGETARIAN";"ROTI"->"FRESHLY MADE";else->"NON-VEGETARIAN"},fontSize=10.sp,color=Gold,fontWeight=FontWeight.Bold,letterSpacing=1.5.sp)
+    Spacer(Modifier.height(8.dp));Text("Freshly prepared at Laddu Bhai Food Point.",fontSize=13.sp,color=Color(0xFFE0EAE3))
+   }
+  }
+  Text("Choose your serving",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
+  Row(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.fillMaxWidth()){
+   listOf("Single" to f.single).plus(if(f.plate!=null) listOf("Plate" to f.plate!!) else emptyList()).forEach{(v,p)->
+    Surface(color=if(variant==v)Color(0xFFFFF0BD) else Color.White,shape=RoundedCornerShape(16.dp),border=androidx.compose.foundation.BorderStroke(1.dp,if(variant==v)Gold else Color.LightGray),modifier=Modifier.weight(1f).clickable{variant=v}){
+     Column(Modifier.padding(16.dp)){Text(v,fontWeight=FontWeight.Bold,color=Ink);Text("₹$p",fontSize=22.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}
+    }
+   }
+  }
+  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){Text("Quantity",fontSize=18.sp,fontWeight=FontWeight.Bold,color=Ink);Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick={if(qty>1)qty--}){Icon(Icons.Default.Remove,null)};Text("$qty",fontWeight=FontWeight.Bold,fontSize=18.sp);IconButton(onClick={qty++}){Icon(Icons.Default.Add,null)}}}
+  Spacer(Modifier.weight(1f))
+  Button(onClick={repeat(qty){onAdd(f,variant,price)};onBack()},modifier=Modifier.fillMaxWidth().height(54.dp),shape=RoundedCornerShape(16.dp),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Add to cart  ·  ₹${price*qty}",color=Gold,fontWeight=FontWeight.Bold,fontSize=16.sp)}
+ }
 }
