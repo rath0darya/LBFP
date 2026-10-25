@@ -189,8 +189,7 @@ private fun HomePage(
                         Column(Modifier.weight(1f)) {
                             Text("FRESHLY MADE • FULL OF FLAVOUR", fontSize = 9.sp, color = Color(0xFFFFD66B), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                             Spacer(Modifier.height(9.dp))
-                            Text("Cravings?
-Consider them handled.", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text("Cravings?\\nConsider them handled.", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Spacer(Modifier.height(7.dp))
                             Text("Everyday favourites, made with care.", fontSize = 12.sp, color = Color(0xFFE0EAE3))
                             Spacer(Modifier.height(14.dp))
