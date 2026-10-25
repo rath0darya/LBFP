@@ -58,7 +58,8 @@ class MainActivity:ComponentActivity(){
 @Composable private fun LBFPApp(){
  val context = LocalContext.current
  val prefs = remember { context.getSharedPreferences("lbfp_customer_data", android.content.Context.MODE_PRIVATE) }
- var tab by remember{mutableStateOf("Home")}\n var selectedFood by remember{mutableStateOf<Food?>(null)}
+ var tab by remember{mutableStateOf("Home")}
+ var selectedFood by remember{mutableStateOf<Food?>(null)}
  var category by remember{mutableStateOf("ALL")}
  var cart by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("cart","[]")); buildMap<String,Line> { for(i in 0 until a.length()){ val o=a.getJSONObject(i); val f=menu.firstOrNull { it.name==o.optString("name") } ?: continue; val v=o.optString("variant"); val p=o.optInt("price"); val q=o.optInt("qty"); if(q>0 && p>0) put(itemKey(f,v),Line(f,v,p,q)) } } }.getOrDefault(emptyMap()))}
  var cartOpen by remember{mutableStateOf(false)}
@@ -98,6 +99,7 @@ class MainActivity:ComponentActivity(){
  }
  }){padding->
  when{
+ selectedFood!=null->FoodDetailPage(selectedFood!!,cart,{f,v,p->changeQty(cart,{cart=it},Line(f,v,p,cart[itemKey(f,v)]?.qty?:0),1)},{selectedFood=null},{f,v->cart[itemKey(f,v)]?.let{changeQty(cart,{cart=it},it,-1)}})
  lastOrder->Column(Modifier.padding(padding).fillMaxSize().padding(26.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
  Box(Modifier.size(78.dp).background(Gold,CircleShape),contentAlignment=Alignment.Center){Text("✓",fontSize=42.sp,fontWeight=FontWeight.Black)}
  Spacer(Modifier.height(18.dp));Text("Order placed!",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
@@ -177,7 +179,8 @@ private fun HomePage(
     onAdd: (Food, String, Int) -> Unit,
     onRemove: (Food, String) -> Unit,
     onMenu: () -> Unit,
-    filterMenu: Boolean
+    filterMenu: Boolean,
+    onFoodClick: (Food) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
     val filtered = menu.filter {
