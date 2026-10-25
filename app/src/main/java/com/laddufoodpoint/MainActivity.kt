@@ -338,29 +338,37 @@ private fun HomePage(
     }
 }
 @Composable private fun FoodCard(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,onClick:(Food)->Unit){
- val accent=when(f.category){"VEG"->Color(0xFF247447);"ROTI"->Color(0xFF9A6414);else->Color(0xFFB7352B)}
- val symbol=when(f.category){"VEG"->"V";"ROTI"->"R";else->"N"}
- Surface(color=Color.White,shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth().clickable{onClick(f)},tonalElevation=1.dp){
- Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(13.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){
-  Box(Modifier.size(5.dp,48.dp).background(accent,RoundedCornerShape(50)))
-  Spacer(Modifier.width(11.dp))
-  AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.size(88.dp,76.dp).clip(RoundedCornerShape(15.dp)))
-  Spacer(Modifier.width(12.dp))
-  Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
-   Text(f.name,fontSize=16.sp,fontWeight=FontWeight.Bold,color=Ink,maxLines=2,overflow=TextOverflow.Ellipsis,lineHeight=20.sp)
-   Row(verticalAlignment=Alignment.CenterVertically){
-    Box(Modifier.size(7.dp).background(accent,CircleShape))
-    Spacer(Modifier.width(5.dp))
-    Text(when(f.category){"VEG"->"VEGETARIAN";"ROTI"->"FRESHLY MADE ROTI";else->"NON-VEGETARIAN"},fontSize=9.sp,color=accent,fontWeight=FontWeight.Bold,letterSpacing=.8.sp)
+ val accent=when(f.category){"VEG"->Color(0xFF27834A);"ROTI"->Color(0xFF9A6414);else->Color(0xFFE23744)}
+ Surface(color=Color.White,shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{onClick(f)},border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFF0F0F0))){
+  Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top){
+    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(5.dp)){
+     Row(verticalAlignment=Alignment.CenterVertically){
+      Box(Modifier.size(12.dp).background(accent,RoundedCornerShape(3.dp)))
+      Spacer(Modifier.width(5.dp))
+      Text(when(f.category){"VEG"->"VEG";"ROTI"->"ROTI";else->"NON-VEG"},fontSize=9.sp,color=accent,fontWeight=FontWeight.ExtraBold,letterSpacing=.6.sp)
+     }
+     Text(f.name,fontSize=17.sp,fontWeight=FontWeight.Bold,color=Ink,maxLines=2,overflow=TextOverflow.Ellipsis,lineHeight=21.sp)
+     Text(if(f.plate!=null)"₹${f.single} · Single   |   ₹${f.plate} · Plate" else "₹${f.single} per serving",fontSize=13.sp,color=Ink,fontWeight=FontWeight.SemiBold)
+     Text("Freshly prepared • Made to order",fontSize=11.sp,color=Muted,maxLines=1)
+    }
+    Spacer(Modifier.width(10.dp))
+    Box{
+     AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.size(116.dp,108.dp).clip(RoundedCornerShape(14.dp)))
+     Surface(color=Color.White,shape=RoundedCornerShape(9.dp),border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFE23744)),modifier=Modifier.align(Alignment.BottomCenter).offset(y=10.dp)){
+      Row(Modifier.padding(horizontal=15.dp,vertical=6.dp),verticalAlignment=Alignment.CenterVertically){
+       Text(if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)>0)"ADDED" else "ADD",fontSize=12.sp,color=Color(0xFFE23744),fontWeight=FontWeight.ExtraBold)
+       if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)==0)Text(" +",fontSize=14.sp,color=Color(0xFFE23744),fontWeight=FontWeight.ExtraBold)
+      }
+     }
+    }
+   }
+   Divider(color=Color(0xFFF0F0F0))
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+    PriceOption(f,"Single",f.single,cart,onAdd,onRemove,Modifier.weight(1f))
+    if(f.plate!=null)PriceOption(f,"Plate",f.plate,cart,onAdd,onRemove,Modifier.weight(1f))
    }
   }
- }
- Row(horizontalArrangement=Arrangement.spacedBy(9.dp)){
-  PriceOption(f,"Single",f.single,cart,onAdd,onRemove,Modifier.weight(1f))
-  if(f.plate!=null)PriceOption(f,"Plate",f.plate,cart,onAdd,onRemove,Modifier.weight(1f))
- }
- }
  }
 }
 @Composable private fun PriceOption(f:Food,v:String,p:Int,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,modifier:Modifier){
