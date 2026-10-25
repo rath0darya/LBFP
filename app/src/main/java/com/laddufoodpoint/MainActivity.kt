@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val Ink=Color(0xFF202124)
-private val Gold=Color(0xFFE23744)
+private val Gold=Color(0xFFFC8019)
 private val Cream=Color(0xFFFFFFFF)
 private val Muted=Color(0xFF777B82)
 private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null)
@@ -114,11 +114,11 @@ class MainActivity:ComponentActivity(){
  lastOrder->Column(Modifier.padding(padding).fillMaxSize().padding(26.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
  Box(Modifier.size(78.dp).background(Gold,CircleShape),contentAlignment=Alignment.Center){Text("✓",fontSize=42.sp,fontWeight=FontWeight.Black)}
  Spacer(Modifier.height(18.dp));Text("Order placed!",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
- Text(orderNumber,fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color(0xFFE23744))
+ Text(orderNumber,fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color(0xFFFC8019))
  Text("Your order summary",color=Muted)
  Spacer(Modifier.height(14.dp))
  Surface(color=Color.White,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Color(0xFFFFE8EA),CircleShape),contentAlignment=Alignment.Center){Text("1",fontWeight=FontWeight.Bold,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("Order received",fontWeight=FontWeight.Bold);Text("Waiting for restaurant confirmation",fontSize=12.sp,color=Muted)}}
+ Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Color(0xFFFFF0E5),CircleShape),contentAlignment=Alignment.Center){Text("1",fontWeight=FontWeight.Bold,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("Order received",fontWeight=FontWeight.Bold);Text("Waiting for restaurant confirmation",fontSize=12.sp,color=Muted)}}
  Divider(color=Color(0xFFECEBE5))
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Cream,CircleShape),contentAlignment=Alignment.Center){Text("2",fontWeight=FontWeight.Bold,color=Muted)};Spacer(Modifier.width(10.dp));Column{Text("Preparing your food",fontWeight=FontWeight.Bold);Text("Status updates are not live in this demo",fontSize=12.sp,color=Muted)}}
  Text("$fulfillment · $paymentMethod",fontSize=12.sp,color=Muted)
@@ -237,7 +237,7 @@ private fun HomePage(
         }
         if (!filterMenu && search.isBlank()) {
             item {
-                Surface(color = Color(0xFFB91C2B), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+                Surface(color = Color(0xFFFC8019), shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("FRESHLY MADE • FULL OF FLAVOUR", fontSize = 9.sp, color = Color(0xFFFFD66B), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -338,7 +338,7 @@ private fun HomePage(
     }
 }
 @Composable private fun FoodCard(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,onClick:(Food)->Unit){
- val accent=when(f.category){"VEG"->Color(0xFF27834A);"ROTI"->Color(0xFF9A6414);else->Color(0xFFE23744)}
+ val accent=when(f.category){"VEG"->Color(0xFF27834A);"ROTI"->Color(0xFF9A6414);else->Color(0xFFFC8019)}
  Surface(color=Color.White,shape=RoundedCornerShape(18.dp),modifier=Modifier.fillMaxWidth().clickable{onClick(f)},border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFF0F0F0))){
   Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(11.dp)){
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.Top){
@@ -355,10 +355,10 @@ private fun HomePage(
     Spacer(Modifier.width(10.dp))
     Box{
      AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.size(116.dp,108.dp).clip(RoundedCornerShape(14.dp)))
-     Surface(color=Color.White,shape=RoundedCornerShape(9.dp),border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFE23744)),modifier=Modifier.align(Alignment.BottomCenter).offset(y=10.dp)){
+     Surface(color=Color.White,shape=RoundedCornerShape(9.dp),border=androidx.compose.foundation.BorderStroke(1.dp,Color(0xFFFC8019)),modifier=Modifier.align(Alignment.BottomCenter).offset(y=10.dp)){
       Row(Modifier.padding(horizontal=15.dp,vertical=6.dp),verticalAlignment=Alignment.CenterVertically){
-       Text(if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)>0)"ADDED" else "ADD",fontSize=12.sp,color=Color(0xFFE23744),fontWeight=FontWeight.ExtraBold)
-       if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)==0)Text(" +",fontSize=14.sp,color=Color(0xFFE23744),fontWeight=FontWeight.ExtraBold)
+       Text(if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)>0)"ADDED" else "ADD",fontSize=12.sp,color=Color(0xFFFC8019),fontWeight=FontWeight.ExtraBold)
+       if((cart[itemKey(f,"Single")]?.qty?:0)+(cart[itemKey(f,"Plate")]?.qty?:0)==0)Text(" +",fontSize=14.sp,color=Color(0xFFFC8019),fontWeight=FontWeight.ExtraBold)
       }
      }
     }
