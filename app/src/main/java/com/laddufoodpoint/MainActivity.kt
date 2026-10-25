@@ -195,7 +195,7 @@ private fun HomePage(
             OutlinedTextField(
                 value = search, onValueChange = { search = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search biryani, noodles, roti…", color = Muted, fontSize = 14.sp) },
+                placeholder = { Text("Search chicken, noodles, fried rice…", color = Muted, fontSize = 14.sp) },
                 leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = "Search menu", tint = Color(0xFF18794E)) },
                 trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Remove, contentDescription = "Clear search") } },
                 singleLine = true, shape = RoundedCornerShape(17.dp),
