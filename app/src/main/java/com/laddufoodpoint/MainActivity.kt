@@ -98,15 +98,23 @@ class MainActivity:ComponentActivity(){
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
  Scaffold(containerColor=Cream,topBar={
  TopAppBar(title={Column{
- Text("LADDU BHAI",fontSize=20.sp,fontWeight=FontWeight.Black,color=Ink,letterSpacing=1.sp)
- Text("FOOD POINT  ·  GOOD FOOD, HAPPY MOOD",fontSize=9.sp,color=Muted,letterSpacing=1.sp)
+ Text("Laddu Bhai Food Point",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
+ Text("DELIVERING TO  ·  YOUR LOCATION",fontSize=10.sp,color=Muted,letterSpacing=.6.sp)
  }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
  },bottomBar={
- if(!cartOpen&&!checkout&&!lastOrder&&selectedFood==null) NavigationBar(containerColor=Color.White){
+ if(!cartOpen&&!checkout&&!lastOrder&&selectedFood==null) Column {
+ if(count>0 && (tab=="Home"||tab=="Menu")) Surface(color=Color(0xFF168044),shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp).clickable{cartOpen=true}) {
+  Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
+   Column(Modifier.weight(1f)){Text("$count item${if(count==1) "" else "s"}  |  ₹$total",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color.White);Text("Extra charges may apply",fontSize=10.sp,color=Color.White)}
+   Text("View cart  →",fontSize=14.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
+  }
+ }
+ NavigationBar(containerColor=Color.White){
  NavigationBarItem(selected=tab=="Home",onClick={tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
  NavigationBarItem(selected=tab=="Menu",onClick={tab="Menu"},icon={Icon(Icons.Default.MenuBook,null)},label={Text("Menu")})
  NavigationBarItem(selected=tab=="Orders",onClick={tab="Orders"},icon={Icon(Icons.Default.ReceiptLong,null)},label={Text("Orders")})
  NavigationBarItem(selected=tab=="Profile",onClick={tab="Profile"},icon={Icon(Icons.Default.Person,null)},label={Text("Profile")})
+ }
  }
  }){padding->
  when{
@@ -211,9 +219,9 @@ private fun HomePage(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFF18794E), modifier = Modifier.size(17.dp))
                         Spacer(Modifier.width(5.dp))
-                        Text("DELIVERING DELICIOUSNESS", fontSize = 10.sp, color = Muted, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("DELIVERING TO YOUR AREA", fontSize = 10.sp, color = Muted, fontWeight = FontWeight.Bold, letterSpacing = .7.sp)
                     }
-                    Text("Good food, happy mood.", fontSize = 25.sp, lineHeight = 30.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                    Text("What are you craving?", fontSize = 25.sp, lineHeight = 30.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
                     Text("Laddu Bhai Food Point", fontSize = 13.sp, color = Muted)
                 }
                 Box(Modifier.size(48.dp).background(Color(0xFFE4F1E8), CircleShape), contentAlignment = Alignment.Center) {
