@@ -23,6 +23,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import org.json.JSONArray
+import org.json.JSONObject
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,20 +56,31 @@ class MainActivity:ComponentActivity(){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun LBFPApp(){
+ val context = LocalContext.current
+ val prefs = remember { context.getSharedPreferences("lbfp_customer_data", android.content.Context.MODE_PRIVATE) }
  var tab by remember{mutableStateOf("Home")}
  var category by remember{mutableStateOf("ALL")}
- var cart by remember{mutableStateOf(mapOf<String,Line>())}
+ var cart by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("cart","[]")); buildMap<String,Line> { for(i in 0 until a.length()){ val o=a.getJSONObject(i); val f=menu.firstOrNull { it.name==o.optString("name") } ?: continue; val v=o.optString("variant"); val p=o.optInt("price"); val q=o.optInt("qty"); if(q>0 && p>0) put(itemKey(f,v),Line(f,v,p,q)) } } }.getOrDefault(emptyMap()))}
  var cartOpen by remember{mutableStateOf(false)}
  var checkout by remember{mutableStateOf(false)}
- var name by remember{mutableStateOf("")}
- var phone by remember{mutableStateOf("")}
- var address by remember{mutableStateOf("")}
- var orderHistory by remember{mutableStateOf(listOf<Pair<Int,String>>())}
+ var name by remember{mutableStateOf(prefs.getString("customer_name","") ?: "")}
+ var phone by remember{mutableStateOf(prefs.getString("customer_phone","") ?: "")}
+ var address by remember{mutableStateOf(prefs.getString("customer_address","") ?: "")}
+ var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); o.optInt("total") to o.optString("description") } }.getOrDefault(emptyList()))}
  var lastOrder by remember{mutableStateOf(false)}
  var fulfillment by remember{mutableStateOf("Delivery")}
  var paymentMethod by remember{mutableStateOf("Pay at restaurant")}
  var orderNumber by remember{mutableStateOf("LBFP-0001")}
- var preferences by remember{mutableStateOf("No onions") }
+ var preferences by remember{mutableStateOf(prefs.getString("food_preferences","No onions") ?: "No onions") }
+ LaunchedEffect(cart,name,phone,address,preferences,orderHistory) {
+   val savedCart=JSONArray()
+   cart.values.forEach { l -> savedCart.put(JSONObject().put("name",l.food.name).put("variant",l.variant).put("price",l.price).put("qty",l.qty)) }
+   val savedOrders=JSONArray()
+   orderHistory.forEach { o -> savedOrders.put(JSONObject().put("total",o.first).put("description",o.second)) }
+   prefs.edit().putString("cart",savedCart.toString()).putString("orders",savedOrders.toString())
+     .putString("customer_name",name).putString("customer_phone",phone)
+     .putString("customer_address",address).putString("food_preferences",preferences).apply()
+ }
  val count=cart.values.sumOf{it.qty}
  val total=cart.values.sumOf{it.qty*it.price}
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
