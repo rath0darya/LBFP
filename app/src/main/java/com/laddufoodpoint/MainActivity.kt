@@ -5,6 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -49,6 +52,13 @@ private val menu=listOf(
  Food("Tandoori Roti","ROTI",13),Food("Butter Naan","ROTI",30)
 )
 private fun itemKey(f:Food,v:String)=f.name+"|"+v
+private fun foodPhoto(f:Food):String = when {
+ f.name.contains("Chicken",true) && f.name.contains("Fried Rice",true) -> "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=900&auto=format&fit=crop&q=85"
+ f.name.contains("Noodle",true) -> "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=900&auto=format&fit=crop&q=85"
+ f.name.contains("Roti",true) || f.name.contains("Naan",true) -> "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=900&auto=format&fit=crop&q=85"
+ f.category=="VEG" -> "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=900&auto=format&fit=crop&q=85"
+ else -> "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=900&auto=format&fit=crop&q=85"
+}
 
 class MainActivity:ComponentActivity(){
  override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{LBFPApp()}}
@@ -239,9 +249,7 @@ private fun HomePage(
                         }
                         Spacer(Modifier.width(6.dp))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(Modifier.size(76.dp).background(Color(0xFF235B41), CircleShape), contentAlignment = Alignment.Center) {
-                                Text("🍜", fontSize = 39.sp)
-                            }
+                            AsyncImage(model=foodPhoto(menu[2]),contentDescription="Freshly prepared food",contentScale=ContentScale.Crop,modifier=Modifier.size(94.dp).clip(RoundedCornerShape(20.dp)))
                             Spacer(Modifier.height(7.dp))
                             Text("MADE FRESH", fontSize = 8.sp, color = Color(0xFFFFD166), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                         }
@@ -334,9 +342,7 @@ private fun HomePage(
  Row(verticalAlignment=Alignment.CenterVertically){
   Box(Modifier.size(5.dp,48.dp).background(accent,RoundedCornerShape(50)))
   Spacer(Modifier.width(11.dp))
-  Box(Modifier.size(46.dp).background(accent.copy(alpha=.10f),RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){
-   Box(Modifier.size(25.dp).background(Color.White,RoundedCornerShape(5.dp)),contentAlignment=Alignment.Center){Text(symbol,fontSize=12.sp,fontWeight=FontWeight.Black,color=accent)}
-  }
+  AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.size(88.dp,76.dp).clip(RoundedCornerShape(15.dp)))
   Spacer(Modifier.width(12.dp))
   Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
    Text(f.name,fontSize=16.sp,fontWeight=FontWeight.Bold,color=Ink,maxLines=2,overflow=TextOverflow.Ellipsis,lineHeight=20.sp)
@@ -383,11 +389,13 @@ private fun changeQty(cart:Map<String,Line>,set:(Map<String,Line>)->Unit,line:Li
  Column(Modifier.fillMaxSize().background(Cream).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
   TextButton(onClick=onBack){Text("← Back to menu",color=Ink)}
   Surface(color=Color(0xFF123D2B),shape=RoundedCornerShape(28.dp),modifier=Modifier.fillMaxWidth()){
-   Column(Modifier.fillMaxWidth().padding(24.dp),horizontalAlignment=Alignment.CenterHorizontally){
-    Text(when(f.category){"VEG"->"🥬";"ROTI"->"🫓";else->"🍗"},fontSize=76.sp)
+   Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.Start){
+    AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(topStart=28.dp,topEnd=28.dp)))
+    Column(Modifier.padding(22.dp)){
     Text(f.name,fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
     Text(when(f.category){"VEG"->"VEGETARIAN";"ROTI"->"FRESHLY MADE";else->"NON-VEGETARIAN"},fontSize=10.sp,color=Gold,fontWeight=FontWeight.Bold,letterSpacing=1.5.sp)
     Spacer(Modifier.height(8.dp));Text("Freshly prepared at Laddu Bhai Food Point.",fontSize=13.sp,color=Color(0xFFE0EAE3))
+    }
    }
   }
   Text("Choose your serving",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
