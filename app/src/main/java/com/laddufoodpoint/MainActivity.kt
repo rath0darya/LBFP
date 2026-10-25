@@ -212,7 +212,7 @@ private fun HomePage(
                         Column(Modifier.weight(1f)) {
                             Text("FRESHLY MADE • FULL OF FLAVOUR", fontSize = 9.sp, color = Color(0xFFFFD66B), fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                             Spacer(Modifier.height(9.dp))
-                            Text("Cravings?\\nConsider them handled.", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            Text("Cravings?\nConsider them handled.", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
                             Spacer(Modifier.height(7.dp))
                             Text("Everyday favourites, made with care.", fontSize = 12.sp, color = Color(0xFFE0EAE3))
                             Spacer(Modifier.height(14.dp))
@@ -253,7 +253,7 @@ private fun HomePage(
                     Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("MAKING MEMORIES OVER FOOD?", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Ink, letterSpacing = .7.sp)
-                            Text("Party orders welcome", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                            Text("WE UNDERTAKE ALL PARTY ORDERS", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
                             Text("Let us be part of your celebration.", fontSize = 11.sp, color = Ink)
                         }
                         Text("✦", fontSize = 36.sp, color = Color(0xFF8B5B0A))
@@ -303,23 +303,56 @@ private fun HomePage(
                     Text("Laddu Bhai Food Point", fontSize = 17.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
                     Text("Good Food, Happy Mood", color = Muted)
                     Spacer(Modifier.height(7.dp))
-                    Text("We undertake all party orders.", fontSize = 12.sp, color = Muted)
+                    Text("WE UNDERTAKE ALL PARTY ORDERS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Ink)
                 }
             }
         }
     }
 }
 @Composable private fun FoodCard(f:Food,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit){
- Surface(color=Color.White,shape=RoundedCornerShape(20.dp),modifier=Modifier.fillMaxWidth()){
- Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(44.dp).background(if(f.category=="VEG")Color(0xFFE2F0D6) else if(f.category=="ROTI")Color(0xFFFFE9BC) else Color(0xFFF7D9D1),RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Text(if(f.category=="VEG")"V" else if(f.category=="ROTI")"R" else "N",fontWeight=FontWeight.Black,color=Ink)};Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(f.name,fontSize=16.sp,fontWeight=FontWeight.Bold,color=Ink,maxLines=2,overflow=TextOverflow.Ellipsis);Text(f.category,fontSize=10.sp,color=Muted,letterSpacing=1.sp)}}
- Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){PriceOption(f,"Single",f.single,cart,onAdd,onRemove,Modifier.weight(1f));if(f.plate!=null)PriceOption(f,"Plate",f.plate,cart,onAdd,onRemove,Modifier.weight(1f))}
+ val accent=when(f.category){"VEG"->Color(0xFF247447);"ROTI"->Color(0xFF9A6414);else->Color(0xFFB7352B)}
+ val symbol=when(f.category){"VEG"->"V";"ROTI"->"R";else->"N"}
+ Surface(color=Color.White,shape=RoundedCornerShape(22.dp),modifier=Modifier.fillMaxWidth(),tonalElevation=1.dp){
+ Column(Modifier.padding(15.dp),verticalArrangement=Arrangement.spacedBy(13.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){
+  Box(Modifier.size(5.dp,48.dp).background(accent,RoundedCornerShape(50)))
+  Spacer(Modifier.width(11.dp))
+  Box(Modifier.size(46.dp).background(accent.copy(alpha=.10f),RoundedCornerShape(15.dp)),contentAlignment=Alignment.Center){
+   Box(Modifier.size(25.dp).background(Color.White,RoundedCornerShape(5.dp)),contentAlignment=Alignment.Center){Text(symbol,fontSize=12.sp,fontWeight=FontWeight.Black,color=accent)}
+  }
+  Spacer(Modifier.width(12.dp))
+  Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
+   Text(f.name,fontSize=16.sp,fontWeight=FontWeight.Bold,color=Ink,maxLines=2,overflow=TextOverflow.Ellipsis,lineHeight=20.sp)
+   Row(verticalAlignment=Alignment.CenterVertically){
+    Box(Modifier.size(7.dp).background(accent,CircleShape))
+    Spacer(Modifier.width(5.dp))
+    Text(when(f.category){"VEG"->"VEGETARIAN";"ROTI"->"FRESHLY MADE ROTI";else->"NON-VEGETARIAN"},fontSize=9.sp,color=accent,fontWeight=FontWeight.Bold,letterSpacing=.8.sp)
+   }
+  }
+ }
+ Row(horizontalArrangement=Arrangement.spacedBy(9.dp)){
+  PriceOption(f,"Single",f.single,cart,onAdd,onRemove,Modifier.weight(1f))
+  if(f.plate!=null)PriceOption(f,"Plate",f.plate,cart,onAdd,onRemove,Modifier.weight(1f))
+ }
  }
  }
 }
 @Composable private fun PriceOption(f:Food,v:String,p:Int,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,modifier:Modifier){
  val qty=cart[itemKey(f,v)]?.qty?:0
- Surface(modifier=modifier,shape=RoundedCornerShape(13.dp),color=Cream){Column(Modifier.padding(10.dp)){Text(v,fontSize=11.sp,color=Muted);Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){Text("₹$p",fontSize=16.sp,fontWeight=FontWeight.ExtraBold,color=Ink);if(qty==0)IconButton(onClick={onAdd(f,v,p)},modifier=Modifier.size(30.dp).background(Gold,RoundedCornerShape(10.dp))){Icon(Icons.Default.Add,null,tint=Ink)}else Row(verticalAlignment=Alignment.CenterVertically){IconButton(onClick={onRemove(f,v)},modifier=Modifier.size(24.dp)){Icon(Icons.Default.Remove,null)};Text("$qty",fontWeight=FontWeight.Bold);IconButton(onClick={onAdd(f,v,p)},modifier=Modifier.size(24.dp)){Icon(Icons.Default.Add,null)}}}}}
+ Surface(modifier=modifier,shape=RoundedCornerShape(15.dp),color=if(qty>0)Color(0xFFFFF2C7) else Color(0xFFF8F7F2),border=androidx.compose.foundation.BorderStroke(1.dp,if(qty>0)Gold else Color(0xFFECE9DF))){
+  Column(Modifier.padding(horizontal=11.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
+   Text(v.uppercase(),fontSize=9.sp,color=Muted,fontWeight=FontWeight.Bold,letterSpacing=.7.sp)
+   Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
+    Text("₹$p",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
+    if(qty==0)IconButton(onClick={onAdd(f,v,p)},modifier=Modifier.size(32.dp).background(Gold,RoundedCornerShape(10.dp))){Icon(Icons.Default.Add,contentDescription="Add ${f.name} ${v}",tint=Ink,modifier=Modifier.size(19.dp))}
+    else Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(2.dp)){
+     IconButton(onClick={onRemove(f,v)},modifier=Modifier.size(27.dp)){Icon(Icons.Default.Remove,contentDescription="Remove one ${f.name}",modifier=Modifier.size(16.dp))}
+     Text("$qty",fontWeight=FontWeight.ExtraBold,fontSize=13.sp,color=Ink)
+     IconButton(onClick={onAdd(f,v,p)},modifier=Modifier.size(27.dp)){Icon(Icons.Default.Add,contentDescription="Add one ${f.name}",modifier=Modifier.size(16.dp))}
+    }
+   }
+  }
+ }
 }
 private fun changeQty(cart:Map<String,Line>,set:(Map<String,Line>)->Unit,line:Line,delta:Int){
  val k=itemKey(line.food,line.variant);val old=cart[k];val qty=(old?.qty?:line.qty)+delta
