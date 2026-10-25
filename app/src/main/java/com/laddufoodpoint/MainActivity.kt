@@ -63,6 +63,10 @@ class MainActivity:ComponentActivity(){
  var address by remember{mutableStateOf("")}
  var orderHistory by remember{mutableStateOf(listOf<Pair<Int,String>>())}
  var lastOrder by remember{mutableStateOf(false)}
+ var fulfillment by remember{mutableStateOf("Delivery")}
+ var paymentMethod by remember{mutableStateOf("Pay at restaurant")}
+ var orderNumber by remember{mutableStateOf("LBFP-0001")}
+ var preferences by remember{mutableStateOf("No onions") }
  val count=cart.values.sumOf{it.qty}
  val total=cart.values.sumOf{it.qty*it.price}
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
@@ -70,7 +74,7 @@ class MainActivity:ComponentActivity(){
  TopAppBar(title={Column{
  Text("LADDU BHAI",fontSize=20.sp,fontWeight=FontWeight.Black,color=Ink,letterSpacing=1.sp)
  Text("FOOD POINT  ·  GOOD FOOD, HAPPY MOOD",fontSize=9.sp,color=Muted,letterSpacing=1.sp)
- }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$"+"count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
+ }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
  },bottomBar={
  if(!cartOpen&&!checkout&&!lastOrder) NavigationBar(containerColor=Color.White){
  NavigationBarItem(selected=tab=="Home",onClick={tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
@@ -82,21 +86,35 @@ class MainActivity:ComponentActivity(){
  when{
  lastOrder->Column(Modifier.padding(padding).fillMaxSize().padding(26.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
  Box(Modifier.size(78.dp).background(Gold,CircleShape),contentAlignment=Alignment.Center){Text("✓",fontSize=42.sp,fontWeight=FontWeight.Black)}
- Spacer(Modifier.height(18.dp));Text("Thanks, $name!",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
- Text("Order summary saved on this device",color=Muted)
+ Spacer(Modifier.height(18.dp));Text("Order placed!",fontSize=27.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
+ Text(orderNumber,fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color(0xFF18794E))
+ Text("Your order summary",color=Muted)
+ Spacer(Modifier.height(14.dp))
+ Surface(color=Color.White,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+ Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Color(0xFFE4F1E8),CircleShape),contentAlignment=Alignment.Center){Text("1",fontWeight=FontWeight.Bold,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("Order received",fontWeight=FontWeight.Bold);Text("Waiting for restaurant confirmation",fontSize=12.sp,color=Muted)}}
+ Divider(color=Color(0xFFECEBE5))
+ Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Cream,CircleShape),contentAlignment=Alignment.Center){Text("2",fontWeight=FontWeight.Bold,color=Muted)};Spacer(Modifier.width(10.dp));Column{Text("Preparing your food",fontWeight=FontWeight.Bold);Text("Status updates are not live in this demo",fontSize=12.sp,color=Muted)}}
+ Text("$fulfillment · $paymentMethod",fontSize=12.sp,color=Muted)
+ }}
  Spacer(Modifier.height(12.dp));Text("Total · ₹$total",fontSize=22.sp,fontWeight=FontWeight.Bold)
- Text("Demo only: this order has not been sent to the restaurant.",fontSize=12.sp,color=Muted)
+ Text("Demo only: this order has not been sent to the restaurant. No live tracking or payment is connected.",fontSize=12.sp,color=Muted)
  Spacer(Modifier.height(18.dp));Button(onClick={cart=emptyMap();lastOrder=false;tab="Home"},colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Continue exploring",color=Gold)}
  }
  checkout->Column(Modifier.padding(padding).fillMaxSize().padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
  TextButton(onClick={checkout=false;cartOpen=true}){Text("← Back to cart")}
+ Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(42.dp).background(Color(0xFFE4F1E8),RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Text("02",fontWeight=FontWeight.Black,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("CHECKOUT",fontSize=10.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold,letterSpacing=1.5.sp);Text("Complete your order",fontSize=24.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}}
  Text("Almost there!",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
  Text("Where should we bring your favourites?",color=Muted)
  OutlinedTextField(name,{name=it},label={Text("Full name")},singleLine=true,modifier=Modifier.fillMaxWidth())
  OutlinedTextField(phone,{phone=it.filter{c->c.isDigit()}},label={Text("Mobile number")},singleLine=true,modifier=Modifier.fillMaxWidth())
- OutlinedTextField(address,{address=it},label={Text("Delivery address")},modifier=Modifier.fillMaxWidth(),minLines=3)
+ Text("FULFILMENT",fontSize=11.sp,color=Muted,fontWeight=FontWeight.Bold,letterSpacing=1.sp)
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Delivery","Pickup").forEach{choice->Surface(color=if(fulfillment==choice)Color(0xFF18794E) else Color.White,shape=RoundedCornerShape(13.dp),modifier=Modifier.weight(1f).clickable{fulfillment=choice}){Text(choice,modifier=Modifier.padding(14.dp),color=if(fulfillment==choice)Color.White else Ink,fontWeight=FontWeight.Bold)}}}
+ if(fulfillment=="Delivery")OutlinedTextField(address,{address=it},label={Text("Delivery address")},modifier=Modifier.fillMaxWidth(),minLines=3)
+ else Text("Collect your order from Laddu Bhai Food Point.",color=Muted,fontSize=13.sp)
+ Text("PAYMENT",fontSize=11.sp,color=Muted,fontWeight=FontWeight.Bold,letterSpacing=1.sp)
+ listOf("Pay at restaurant","Cash on delivery","UPI (confirm with restaurant)").forEach{choice->Surface(color=Color.White,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().clickable{paymentMethod=choice}){Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(selected=paymentMethod==choice,onClick={paymentMethod=choice},colors=RadioButtonDefaults.colors(selectedColor=Color(0xFF18794E)));Spacer(Modifier.width(6.dp));Text(choice,fontSize=14.sp,color=Ink)}}}
  Spacer(Modifier.weight(1f))
- Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Text("Order total",color=Muted);Text("₹$total",fontSize=26.sp,fontWeight=FontWeight.ExtraBold);Text("Restaurant confirms delivery and payment separately.",fontSize=12.sp,color=Muted);Spacer(Modifier.height(10.dp));Button(onClick={orderHistory=listOf(total to "Order placed · confirmation pending")+orderHistory;checkout=false;cartOpen=false;lastOrder=true},enabled=name.isNotBlank()&&phone.length>=10&&address.isNotBlank(),modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Place order",color=Gold,fontWeight=FontWeight.Bold)}}}
+ Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Text("Order total",color=Muted);Text("₹$total",fontSize=26.sp,fontWeight=FontWeight.ExtraBold);Text("Restaurant confirms delivery and payment separately.",fontSize=12.sp,color=Muted);Spacer(Modifier.height(10.dp));Button(onClick={orderNumber="LBFP-"+System.currentTimeMillis().toString().takeLast(6);orderHistory=listOf(total to "Order placed · $orderNumber · $fulfillment · $paymentMethod")+orderHistory;checkout=false;cartOpen=false;lastOrder=true},enabled=name.isNotBlank()&&phone.length>=10&&(fulfillment=="Pickup"||address.isNotBlank()),modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Place order",color=Gold,fontWeight=FontWeight.Bold)}}}
  }
  cartOpen->Column(Modifier.padding(padding).fillMaxSize().padding(16.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={cartOpen=false}){Text("← Back")};Text("Your bag",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}
@@ -113,12 +131,17 @@ class MainActivity:ComponentActivity(){
  else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){items(orderHistory){o->Surface(color=Color.White,shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(16.dp)){Text(o.second,fontWeight=FontWeight.Bold);Text("Laddu Bhai Food Point",color=Muted);Text("₹${o.first}",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("Saved locally · not transmitted to restaurant",fontSize=11.sp,color=Muted)}}}}
  }
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp)){
- Surface(color=Ink,shape=RoundedCornerShape(24.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text("LBFP",fontSize=12.sp,color=Gold,fontWeight=FontWeight.Bold,letterSpacing=2.sp);Text("Good Food, Happy Mood",fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text("Laddu Bhai Food Point",color=Color.LightGray)}}
+ Surface(color=Ink,shape=RoundedCornerShape(24.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text("LBFP",fontSize=12.sp,color=Gold,fontWeight=FontWeight.Bold,letterSpacing=2.sp);Text("Good Food, Happy Mood",fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text("Laddu Bhai Food Point",color=Color.LightGray)
+ Text("Geometric-inspired LBFP identity",fontSize=11.sp,color=Color(0xFFE0EAE3))}}
  Spacer(Modifier.height(16.dp));Text("Your details",fontSize=21.sp,fontWeight=FontWeight.Bold)
  OutlinedTextField(name,{name=it},label={Text("Name")},modifier=Modifier.fillMaxWidth(),singleLine=true)
  OutlinedTextField(phone,{phone=it.filter{c->c.isDigit()}},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)
  OutlinedTextField(address,{address=it},label={Text("Delivery address")},modifier=Modifier.fillMaxWidth(),minLines=2)
  Text("Party orders are welcome. Contact the restaurant to arrange bulk orders.",color=Muted,fontSize=13.sp)
+ Spacer(Modifier.height(8.dp))
+ Text("Food preferences",fontSize=18.sp,fontWeight=FontWeight.Bold,color=Ink)
+ listOf("No onions","Less spicy","Extra spicy","No preference").forEach{choice->Surface(color=Color.White,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().clickable{preferences=choice}){Row(Modifier.padding(horizontal=12.dp,vertical=5.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(selected=preferences==choice,onClick={preferences=choice},colors=RadioButtonDefaults.colors(selectedColor=Color(0xFF18794E)));Text(choice,color=Ink)}}}
+ Text("Preference selected: $preferences",fontSize=12.sp,color=Muted)
  }
  else->HomePage(padding,tab,category,{category=it;tab="Menu"},cart,
  onAdd={f,v,price->changeQty(cart,{cart=it},Line(f,v,price,cart[itemKey(f,v)]?.qty?:0),1)},
