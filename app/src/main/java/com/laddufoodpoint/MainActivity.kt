@@ -38,6 +38,13 @@ import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.RiceBowl
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.BakeryDining
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.SettingsBrightness
+import androidx.core.view.WindowCompat
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
@@ -55,10 +62,12 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-private val Ink=Color(0xFF202124)
+private var appDarkTheme = false
+private val Ink get() = if(appDarkTheme) Color(0xFFF4F4F4) else Color(0xFF202124)
 private val Gold=Color(0xFFFC8019)
-private val Cream=Color(0xFFFFFFFF)
-private val Muted=Color(0xFF777B82)
+private val Cream get() = if(appDarkTheme) Color(0xFF101114) else Color(0xFFFFFFFF)
+private val Muted get() = if(appDarkTheme) Color(0xFFB0B3BA) else Color(0xFF777B82)
+private val CardColor get() = if(appDarkTheme) Color(0xFF1B1D22) else Color.White
 private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null)
 private data class Line(val food:Food,val variant:String,val price:Int,val qty:Int)
 private data class SavedAddress(val label:String,val details:String,val landmark:String="",val addressType:String="Other",val latitude:Double?=null,val longitude:Double?=null)
@@ -86,13 +95,17 @@ private fun foodPhoto(f:Food):String = when {
 }
 
 class MainActivity:ComponentActivity(){
- override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{LBFPApp()}}
+ override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState); WindowCompat.setDecorFitsSystemWindows(window,true); window.statusBarColor=android.graphics.Color.WHITE; window.navigationBarColor=android.graphics.Color.WHITE; WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightStatusBars=true; WindowCompat.getInsetsController(window,window.decorView).isAppearanceLightNavigationBars=true; setContent{LBFPApp()}}
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable private fun LBFPApp(){
  val context = LocalContext.current
  val prefs = remember { context.getSharedPreferences("lbfp_customer_data", android.content.Context.MODE_PRIVATE) }
+ var themeMode by remember { mutableStateOf(prefs.getString("theme_mode","system") ?: "system") }
+ val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+ val darkMode = themeMode=="dark" || (themeMode=="system" && systemDark)
+ SideEffect { appDarkTheme=darkMode; val activity=context as ComponentActivity; val bars=WindowCompat.getInsetsController(activity.window,activity.window.decorView); bars.isAppearanceLightStatusBars=!darkMode; bars.isAppearanceLightNavigationBars=!darkMode; activity.window.statusBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE; activity.window.navigationBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE }
  var tab by remember{mutableStateOf("Home")}
  var orderFilter by remember{mutableStateOf("All")}
  var selectedFood by remember{mutableStateOf<Food?>(null)}
@@ -204,7 +217,7 @@ class MainActivity:ComponentActivity(){
  val deliveryFee=if(fulfillment!="Delivery"||deliveryDistanceKm<=0.0) 0 else if(deliveryDistanceKm<1.0) 10 else (kotlin.math.ceil(kotlin.math.min(deliveryDistanceKm,5.0)*8.0)+kotlin.math.ceil(kotlin.math.max(deliveryDistanceKm-5.0,0.0)*10.0)).toInt()
  val packagingFee=if(cart.isEmpty()) 0 else 10
  val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+packagingFee
- MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
+ MaterialTheme(colorScheme=if(darkMode) darkColorScheme(primary=Gold,secondary=Gold,background=Cream,surface=CardColor,onBackground=Ink,onSurface=Ink) else lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
  if(showPermissionIntro) AlertDialog(onDismissRequest={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()},title={Text("A better ordering experience")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("Location: shows your current address and saved delivery places, and helps calculate distance from the restaurant.");Text("Notifications: can show order and service updates when those features are available. You can still use the app if you decline.")}},confirmButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply();locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}){Text("Continue")}},dismissButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()}){Text("Not now")}})
  BackHandler(enabled=selectedOrder!=null||selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedOrder!=null -> selectedOrder=null; selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
  Scaffold(containerColor=Cream,topBar={
@@ -257,7 +270,7 @@ class MainActivity:ComponentActivity(){
      ) {
          item {
              Row(verticalAlignment = Alignment.CenterVertically) {
-                 TextButton(onClick = { checkout = false; cartOpen = true }) { Text("← Cart") }
+                 
                  Column {
                      Text("CHECKOUT", fontSize = 10.sp, color = Color(0xFF18794E), fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp)
                      Text("Complete your order", fontSize = 25.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
@@ -420,7 +433,7 @@ class MainActivity:ComponentActivity(){
      }
  }
  cartOpen->Column(Modifier.padding(padding).fillMaxSize().padding(16.dp)){
- Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={cartOpen=false}){Text("← Back")};Text("Your bag",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}
+ Row(verticalAlignment=Alignment.CenterVertically){Text("Your bag",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}
  if(cart.isEmpty())Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally){Icon(Icons.Default.ShoppingBag,null,tint=Gold,modifier=Modifier.size(46.dp));Text("Your bag is waiting",fontSize=21.sp,fontWeight=FontWeight.Bold);Text("Add a favourite from our menu",color=Muted);Button(onClick={cartOpen=false;tab="Menu"}){Text("Explore menu")}}}
  else{
  LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(9.dp)){items(cart.values.toList(),key={itemKey(it.food,it.variant)}){line->Surface(color=Color.White,shape=RoundedCornerShape(16.dp)){Row(Modifier.fillMaxWidth().padding(13.dp),verticalAlignment=Alignment.CenterVertically){AsyncImage(model=foodPhoto(line.food),contentDescription=line.food.name,contentScale=ContentScale.Crop,modifier=Modifier.size(76.dp).clip(RoundedCornerShape(14.dp)));Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(line.food.name,fontWeight=FontWeight.Bold,color=Ink);Text("${line.variant} · ₹${line.price} each",fontSize=12.sp,color=Muted);Text("₹${line.price*line.qty}",fontWeight=FontWeight.ExtraBold,color=Ink)};IconButton(onClick={changeQty(cart,{cart=it},line,-1)}){Icon(Icons.Default.Remove,null)};Text("${line.qty}",fontWeight=FontWeight.Bold);IconButton(onClick={changeQty(cart,{cart=it},line,1)}){Icon(Icons.Default.Add,null)}}}}}
@@ -433,7 +446,7 @@ class MainActivity:ComponentActivity(){
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("All","Ongoing","Completed").forEach{filter->FilterChip(selected=orderFilter==filter,onClick={orderFilter=filter},label={Text(filter)},colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Color(0xFF18794E),selectedLabelColor=Color.White))}}
  Spacer(Modifier.height(10.dp))
  if(orderHistory.isEmpty())Surface(color=Color.White,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Icon(Icons.Default.ReceiptLong,null,tint=Gold,modifier=Modifier.size(36.dp));Spacer(Modifier.height(8.dp));Text("No orders yet",fontSize=20.sp,fontWeight=FontWeight.Bold);Text("Your next favourite meal starts here.",color=Muted);Button(onClick={tab="Menu"}){Text("Browse menu")}}}
- else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){items(orderHistory){o->Surface(color=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().clickable { selectedOrder=o }){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text(o.id,fontWeight=FontWeight.ExtraBold,color=Ink);Text(o.status,fontSize=11.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold)};Text("Laddu Bhai Food Point",color=Muted);Text("₹${o.total}",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("${o.fulfillment} · ${o.paymentMethod}",fontSize=12.sp,color=Muted);Text("Tap to view full order details  →",fontSize=12.sp,color=Gold,fontWeight=FontWeight.Bold)}}}}
+ else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){items(orderHistory){o->Surface(color=CardColor,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().clickable { selectedOrder=o }){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text(o.id,fontWeight=FontWeight.ExtraBold,color=Ink);Text(o.status,fontSize=11.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold)};Text("Laddu Bhai Food Point",color=Muted);Text("₹${o.total}",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("${o.fulfillment} · ${o.paymentMethod}",fontSize=12.sp,color=Muted);Text("Tap to view full order details  →",fontSize=12.sp,color=Gold,fontWeight=FontWeight.Bold)}}}}
  }
  tab=="Help"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Help & support",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Quick answers for your order",color=Muted);listOf("Where is my order?","Orders are saved on this device only. Live restaurant confirmation and tracking are not connected.","How do I change an item?","Open the cart and use +, −, or edit the quantity field. You can also return to the menu to change serving size.","How does payment work?","Payment is not processed in this demo. Confirm payment options directly with the restaurant.","Need help with a bulk order?","Please contact Laddu Bhai Food Point directly; contact details are not configured in this app.").chunked(2).forEach{pair->Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(pair[0],fontWeight=FontWeight.Bold,color=Ink);Text(pair[1],fontSize=13.sp,color=Muted)}}};Button(onClick={tab="Profile"},modifier=Modifier.fillMaxWidth()){Text("Back to profile")}}
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
@@ -477,11 +490,11 @@ private fun HomePage(
     onFoodClick: (Food) -> Unit
 ) {
     var search by remember { mutableStateOf("") }
-    var vegOnly by remember { mutableStateOf(false) }
+    
     val categories = listOf("ALL", "NON-VEG", "VEG", "ROTI")
     val filtered = menu.filter { f ->
         (category == "ALL" || f.category == category) &&
-        (!vegOnly || f.category == "VEG") &&
+        
         (search.isBlank() || f.name.contains(search.trim(), ignoreCase = true))
     }
     LazyColumn(
@@ -524,10 +537,10 @@ private fun HomePage(
             item {
                 Column(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        listOf(Triple("Veg", "🥬", "VEG"), Triple("Non-veg", "🍗", "NON-VEG"), Triple("Roti & naan", "🫓", "ROTI")).forEach { (title, emoji, key) ->
+                        listOf(Triple("Veg", Icons.Default.RiceBowl, "VEG"), Triple("Non-veg", Icons.Default.LocalFireDepartment, "NON-VEG"), Triple("Roti & naan", Icons.Default.BakeryDining, "ROTI")).forEach { (title, categoryIcon, key) ->
                             Column(Modifier.weight(1f).clickable { onCategory(key) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                Surface(color = Color(0xFFF5F5F5), shape = CircleShape, modifier = Modifier.size(74.dp)) {
-                                    Box(contentAlignment = Alignment.Center) { Text(emoji, fontSize = 34.sp) }
+                                Surface(color = CardColor, shape = CircleShape, modifier = Modifier.size(74.dp)) {
+                                    Box(contentAlignment = Alignment.Center) { Icon(categoryIcon, contentDescription=title, tint=if(key=="VEG") Color(0xFF27834A) else if(key=="ROTI") Gold else Color(0xFFB33A2B), modifier=Modifier.size(34.dp)) }
                                 }
                                 Spacer(Modifier.height(7.dp))
                                 Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Ink, maxLines = 1)
@@ -564,8 +577,6 @@ private fun HomePage(
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Ink, selectedLabelColor = Color.White)
                         )
                     }
-                    FilterChip(selected = vegOnly, onClick = { vegOnly = !vegOnly; if (vegOnly) onCategory("ALL") }, label = { Text("🟢 Veg", fontSize = 11.sp) },
-                        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Color(0xFFE1F2E5), selectedLabelColor = Color(0xFF18794E)))
                 }
             }
         }
@@ -574,7 +585,7 @@ private fun HomePage(
                 Column(Modifier.fillMaxWidth().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("No dishes found", fontWeight = FontWeight.Bold, fontSize = 19.sp, color = Ink)
                     Text("Try a different search or filter.", color = Muted, fontSize = 13.sp)
-                    TextButton(onClick = { search = ""; vegOnly = false; onCategory("ALL") }) { Text("Clear filters") }
+                    TextButton(onClick = { search = ""; onCategory("ALL") }) { Text("Clear filters") }
                 }
             }
         } else {
@@ -680,7 +691,7 @@ private fun setLineQty(cart:Map<String,Line>,set:(Map<String,Line>)->Unit,line:L
  var qty by remember(f.name){mutableIntStateOf(1)}
  val price=if(variant=="Plate") (f.plate?:f.single) else f.single
  Column(Modifier.fillMaxSize().background(Cream).padding(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
-  TextButton(onClick=onBack){Text("← Back to menu",color=Ink)}
+  
   Surface(color=Color(0xFF123D2B),shape=RoundedCornerShape(28.dp),modifier=Modifier.fillMaxWidth()){
    Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.Start){
     AsyncImage(model=foodPhoto(f),contentDescription=f.name,contentScale=ContentScale.Crop,modifier=Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(topStart=28.dp,topEnd=28.dp)))
@@ -709,7 +720,7 @@ private fun setLineQty(cart:Map<String,Line>,set:(Map<String,Line>)->Unit,line:L
 private fun OrderDetailPage(order: OrderRecord, onBack: () -> Unit) {
  val orderItems = remember(order.itemsJson) { runCatching { val a=JSONArray(order.itemsJson); (0 until a.length()).map { i -> a.getJSONObject(i) } }.getOrDefault(emptyList()) }
  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-   Row(verticalAlignment=Alignment.CenterVertically) { TextButton(onClick=onBack) { Text("← My orders") }; Column { Text("ORDER DETAILS",fontSize=10.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold,letterSpacing=1.2.sp); Text(order.id,fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink) } }
+   Row(verticalAlignment=Alignment.CenterVertically) { Column { Text("ORDER DETAILS",fontSize=10.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold,letterSpacing=1.2.sp); Text(order.id,fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink) } }
    Surface(color=Color(0xFFEAF5EE),shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) { Text(order.status,fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Color(0xFF18794E)); Text("Status saved with this order · live restaurant updates are not connected",fontSize=12.sp,color=Muted); Text("Order type: " + order.fulfillment + " · Payment: " + order.paymentMethod,fontWeight=FontWeight.SemiBold,color=Ink); Text("Order ID: " + order.id,fontSize=12.sp,color=Muted) } }
    Surface(color=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) { Text("Personal information",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink); Text("Customer name",fontSize=11.sp,color=Muted); Text(order.customerName.ifBlank{"Not provided"},fontWeight=FontWeight.SemiBold,color=Ink); Text("Mobile number",fontSize=11.sp,color=Muted); Text(order.phone.ifBlank{"Not provided"},fontWeight=FontWeight.SemiBold,color=Ink) } }
    Surface(color=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) { Text("Items ordered",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink); if(orderItems.isEmpty()) Text("Item details are unavailable for this older order.",fontSize=13.sp,color=Muted); orderItems.forEach { item -> Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically) { Column(Modifier.weight(1f)) { Text(item.optString("name","Item"),fontWeight=FontWeight.SemiBold,color=Ink); Text("Qty " + item.optInt("qty",1) + " · " + item.optString("variant",""),fontSize=12.sp,color=Muted) }; Text("₹" + item.optInt("lineTotal",item.optInt("price")*item.optInt("qty",1)),fontWeight=FontWeight.Bold,color=Ink) } }; Text("Food preferences: " + order.preferences,fontSize=12.sp,color=Muted) } }
