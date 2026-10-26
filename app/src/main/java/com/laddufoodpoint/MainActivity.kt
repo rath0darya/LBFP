@@ -330,8 +330,17 @@ private fun HomePage(
                 }
             }
         } else {
-            items(filtered, key = { it.name }) { food ->
-                FoodCard(food, cart, onAdd, onRemove, onFoodClick)
+            listOf("NON-VEG", "VEG", "ROTI").filter { group -> filtered.any { it.category == group } }.forEach { group ->
+                item(key = "category_header_$group") {
+                    Row(Modifier.fillMaxWidth().background(Color(0xFFF6F5F0)).padding(horizontal = 18.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(when(group) { "NON-VEG" -> "NON-VEGETARIAN"; "VEG" -> "VEGETARIAN"; else -> "ROTI & NAAN" }, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Ink, letterSpacing = 1.sp)
+                        Spacer(Modifier.weight(1f))
+                        Text("${filtered.count { it.category == group }} items", fontSize = 11.sp, color = Muted)
+                    }
+                }
+                items(filtered.filter { it.category == group }, key = { it.name }) { food ->
+                    FoodCard(food, cart, onAdd, onRemove, onFoodClick)
+                }
             }
         }
         item {
