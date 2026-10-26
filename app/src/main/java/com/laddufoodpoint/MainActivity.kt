@@ -13,6 +13,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import java.util.Locale
+import java.net.HttpURLConnection
+import java.net.URL
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -152,15 +154,33 @@ class MainActivity:ComponentActivity(){
          }
          val restaurant = geocoder.getFromLocationName(RESTAURANT_ADDRESS, 1)?.firstOrNull()
          if (destination == null || restaurant == null) null else {
-           val meters = FloatArray(1)
-           Location.distanceBetween(restaurant.latitude, restaurant.longitude, destination.latitude, destination.longitude, meters)
-           (meters[0] / 1000.0 * 1.25).coerceAtLeast(0.1)
+           val routeUrl = URL(
+             "https://router.project-osrm.org/route/v1/driving/" +
+               "${restaurant.longitude},${restaurant.latitude};${destination.longitude},${destination.latitude}?overview=false"
+           )
+           val connection = (routeUrl.openConnection() as HttpURLConnection).apply {
+             requestMethod = "GET"
+             connectTimeout = 8000
+             readTimeout = 8000
+             setRequestProperty("User-Agent", "LBFP-Android/1.0")
+           }
+           try {
+             if (connection.responseCode != HttpURLConnection.HTTP_OK) null
+             else {
+               val routeJson = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
+               val route = routeJson.optJSONArray("routes")?.optJSONObject(0)
+               val meters = route?.optDouble("distance", 0.0) ?: 0.0
+               if (meters > 0.0) meters / 1000.0 else null
+             }
+           } finally {
+             connection.disconnect()
+           }
          }
        }.getOrNull()
      }
      deliveryDistanceKm = result ?: 0.0
      distanceCalculating = false
-     locationMessage = if (result == null) "Could not calculate distance for this address. Select current location or edit the address." else "Estimated distance calculated automatically."
+     locationMessage = if (result == null) "Unable to calculate a driving route for this address. Check the saved address and try again." else "Driving distance calculated automatically."
    }
  }
  LaunchedEffect(name, phone) {
@@ -312,10 +332,10 @@ class MainActivity:ComponentActivity(){
                          }
                          if (locationMessage.isNotBlank()) Text(locationMessage, fontSize = 12.sp, color = Muted)
                          Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                             Text("Estimated delivery distance", fontSize = 13.sp, color = Muted)
+                             Text("Delivery distance", fontSize = 13.sp, color = Muted)
                              Text(if (distanceCalculating) "Calculating…" else if (deliveryDistanceKm > 0.0) "${"%.1f".format(Locale.US, deliveryDistanceKm)} km" else "Unavailable", fontWeight = FontWeight.SemiBold, color = Ink)
                          }
-                         Text("Distance is estimated automatically from the restaurant and delivery address coordinates.", fontSize = 11.sp, color = Muted)
+                         Text("Driving route and delivery fee are calculated automatically in the background.", fontSize = 11.sp, color = Muted)
                      }
                  }
              }
