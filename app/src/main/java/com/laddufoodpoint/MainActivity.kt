@@ -101,6 +101,7 @@ class MainActivity:ComponentActivity(){
  var showPermissionIntro by remember { mutableStateOf(!prefs.getBoolean("permission_intro_seen",false)) }
  var showAddressEditor by remember { mutableStateOf(false) }
  var showLocationPicker by remember { mutableStateOf(false) }
+ var editProfile by remember { mutableStateOf(false) }
  var editingAddressLabel by remember { mutableStateOf("Home") }
  var editingAddressText by remember { mutableStateOf("") }
  var editingLandmark by remember { mutableStateOf("") }
@@ -138,7 +139,7 @@ class MainActivity:ComponentActivity(){
  val total=cart.values.sumOf{it.qty*it.price}
  val deliveryFee=if(fulfillment!="Delivery"||deliveryDistanceKm<=0.0) 0 else (kotlin.math.ceil(kotlin.math.min(deliveryDistanceKm,5.0)*8.0)+kotlin.math.ceil(kotlin.math.max(deliveryDistanceKm-5.0,0.0)*10.0)).toInt()
  val packagingFee=if(cart.isEmpty()) 0 else 10
- val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+(if(fulfillment=="Delivery") packagingFee else 0)
+ val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+packagingFee
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
  if(showPermissionIntro) AlertDialog(onDismissRequest={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()},title={Text("A better ordering experience")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("Location: shows your current address and saved delivery places, and helps calculate distance from the restaurant.");Text("Notifications: can show order and service updates when those features are available. You can still use the app if you decline.")}},confirmButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply();locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}){Text("Continue")}},dismissButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()}){Text("Not now")}})
  BackHandler(enabled=selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
@@ -155,11 +156,11 @@ class MainActivity:ComponentActivity(){
    Text("View cart  →",fontSize=14.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
   }
  }
- NavigationBar(containerColor=Color.White){
+ if(!checkout && !cartOpen && !lastOrder) NavigationBar(containerColor=Color.White){
  NavigationBarItem(selected=tab=="Home",onClick={tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
  NavigationBarItem(selected=tab=="Menu",onClick={tab="Menu"},icon={Icon(Icons.Default.MenuBook,null)},label={Text("Menu")})
  NavigationBarItem(selected=tab=="Orders",onClick={tab="Orders"},icon={Icon(Icons.Default.ReceiptLong,null)},label={Text("Orders")})
- NavigationBarItem(selected=tab=="Profile"||tab=="Help",onClick={tab="Profile"},icon={Icon(Icons.Default.Person,null)},label={Text("Profile")})
+ NavigationBarItem(selected=tab=="Profile"||tab=="Help",onClick={tab="Profile"},icon={Icon(Icons.Default.Settings,null)},label={Text("Settings")})
  }
  }
  }){padding->
@@ -187,15 +188,16 @@ class MainActivity:ComponentActivity(){
  item { Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Order Summary",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
  cart.values.forEach{line->Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text("${line.food.name}",fontWeight=FontWeight.SemiBold,color=Ink);Text("Qty ${line.qty} · ${line.variant}",fontSize=12.sp,color=Muted)};Text("₹${line.price*line.qty}",fontWeight=FontWeight.Bold,color=Ink)}}
  Divider(color=Color(0xFFE8E7E0));Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Item total",color=Muted);Text("₹${total}",fontWeight=FontWeight.SemiBold,color=Ink)}
- if(fulfillment=="Delivery"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Packaging fee",color=Muted);Text("₹10",fontWeight=FontWeight.SemiBold,color=Ink)};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Delivery fee",color=Muted);Text(if(deliveryDistanceKm>0) "₹${deliveryFee}" else "—",fontWeight=FontWeight.SemiBold,color=Ink)}}
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Packaging fee",color=Muted);Text("₹10",fontWeight=FontWeight.SemiBold,color=Ink)}
+ if(fulfillment=="Delivery")Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Delivery fee",color=Muted);Text(if(deliveryDistanceKm>0) "₹${deliveryFee}" else "—",fontWeight=FontWeight.SemiBold,color=Ink)}
  Divider(color=Color(0xFFE8E7E0));Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text("Total",fontSize=17.sp,fontWeight=FontWeight.Bold,color=Ink);Text("₹${grandTotal}",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Color(0xFF18794E))}
  }}
  item { Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Delivery Details",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
- Column{Text("Customer name",fontSize=12.sp,color=Muted);Text(name.ifBlank{"Name not added"},fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
- Column{Text("Mobile number",fontSize=12.sp,color=Muted);Text(phone.ifBlank{"Mobile number not added"},fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
- if(fulfillment=="Delivery"){Column{Text("Exact delivery address",fontSize=12.sp,color=Muted);Text(address.ifBlank{"Choose an address from your saved locations"},fontSize=14.sp,fontWeight=FontWeight.Medium,color=Ink)}
+ Column(Modifier.fillMaxWidth()){Text("Customer name",fontSize=12.sp,color=Muted);Text(name.ifBlank{"Add your name in Settings"},fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
+ Column(Modifier.fillMaxWidth()){Text("Mobile number",fontSize=12.sp,color=Muted);Text(phone.ifBlank{"Add your mobile number in Settings"},fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
+ if(fulfillment=="Delivery"){Column(Modifier.fillMaxWidth()){Text("Exact delivery address",fontSize=12.sp,color=Muted);val selectedSaved=addressBook.firstOrNull{it.details==address};Text(address.ifBlank{"Choose an address from your saved locations"},fontSize=14.sp,fontWeight=FontWeight.Medium,color=Ink);if(selectedSaved?.landmark?.isNotBlank()==true)Text("Landmark: ${selectedSaved.landmark}",fontSize=12.sp,color=Muted);if(selectedSaved!=null)Text("Address type: ${selectedSaved.addressType}",fontSize=12.sp,color=Muted)}
  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){TextButton(onClick={showLocationPicker=true}){Text("Choose saved address")};TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse(RESTAURANT_MAP_URL)))}){Text("Restaurant map ↗")}}
- if(addressBook.isNotEmpty())Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)){addressBook.take(3).forEach{saved->FilterChip(selected=address==saved.details,onClick={address=saved.details;detectedLocation=saved.details;currentLat=saved.latitude;currentLon=saved.longitude},label={Text(saved.label,maxLines=1)})}}
+ if(addressBook.isNotEmpty())Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(6.dp)){addressBook.forEach{saved->FilterChip(selected=address==saved.details,onClick={address=saved.details;detectedLocation=saved.details;currentLat=saved.latitude;currentLon=saved.longitude},label={Text(saved.label,maxLines=1)})}}
  if(locationMessage.isNotBlank())Text(locationMessage,fontSize=12.sp,color=Muted)
  OutlinedTextField(value=if(deliveryDistanceKm==0.0) "" else deliveryDistanceKm.toString(),onValueChange={deliveryDistanceKm=it.toDoubleOrNull()?.coerceIn(0.0,100.0)?:0.0},label={Text("Delivery distance (km)")},placeholder={Text("Enter road distance from Google Maps")},singleLine=true,modifier=Modifier.fillMaxWidth(),keyboardOptions=androidx.compose.foundation.text.KeyboardOptions(keyboardType=androidx.compose.ui.text.input.KeyboardType.Decimal))
  Text("Confirm the road distance from the restaurant route before placing the order.",fontSize=11.sp,color=Muted)
@@ -230,9 +232,8 @@ class MainActivity:ComponentActivity(){
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
  Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted)
  Surface(color=Ink,shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("LADDU BHAI FOOD POINT",fontSize=11.sp,color=Gold,fontWeight=FontWeight.Bold);Text(if(name.isBlank()) "Your profile" else name,fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text(if(phone.isBlank()) "Add your mobile number below" else phone,color=Color(0xFFE0EAE3),fontSize=13.sp)}}
- Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
- OutlinedTextField(name,{name=it},label={Text("Full name")},modifier=Modifier.fillMaxWidth(),singleLine=true)
- OutlinedTextField(phone,{phone=it.filter{ch->ch.isDigit()}.take(10)},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+ Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink);Spacer(Modifier.weight(1f));TextButton(onClick={editProfile=!editProfile}){Text(if(editProfile)"Done editing" else "Edit profile")}}
+ if(editProfile){OutlinedTextField(name,{name=it},label={Text("Full name")},modifier=Modifier.fillMaxWidth(),singleLine=true);OutlinedTextField(phone,{phone=it.filter{ch->ch.isDigit()}.take(10)},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)}else{Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(name.ifBlank{"Name not added"},fontWeight=FontWeight.SemiBold,color=Ink);Text(phone.ifBlank{"Mobile number not added"},fontSize=13.sp,color=Muted)}}}
  Text("Address book",fontSize=21.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Save any place with your own label, address type and landmark.",fontSize=12.sp,color=Muted)
  addressBook.forEach { saved -> Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(saved.label,fontWeight=FontWeight.Bold,color=Ink);Text(saved.details + if(saved.landmark.isNotBlank()) " · Near ${saved.landmark}" else "",fontSize=12.sp,color=Muted,maxLines=2)};TextButton(onClick={address=saved.details;detectedLocation=saved.details;currentLat=saved.latitude;currentLon=saved.longitude}){Text("Use")};TextButton(onClick={editingAddressLabel=saved.label;editingAddressType=saved.addressType;editingLandmark=saved.landmark;editingAddressText=saved.details;showAddressEditor=true}){Text("Edit")};TextButton(onClick={addressBook=addressBook.filterNot{it.label==saved.label}}){Text("Delete",color=Color(0xFFB3261E))}}} }
  Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Orders"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.ReceiptLong,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Order history",fontWeight=FontWeight.Bold,color=Ink);Text("Orders saved on this device",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
