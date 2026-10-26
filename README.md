@@ -2,26 +2,35 @@
 
 Native Android customer app built with Kotlin and Jetpack Compose.
 
+## App details
+
 - **Application ID:** `com.laddufoodpoint`
-- **Menu:** 18 configured items with the supplied Single/Plate pricing.
-- **Customer flow:** Home, menu search and categories, cart, delivery/pickup checkout, order confirmation, order history and profile.
-- **Local persistence:** Cart, customer details, food preferences and order history are saved on the device.
-- **Branding:** Orange accent with clean neutral surfaces, high-contrast type, vegetarian and non-vegetarian markers.\n- **Home UI:** Compact dish search, photo-led horizontal food categories, concise promotional hero, menu discovery and fixed four-tab navigation.\n- **Appearance:** System, light and dark theme modes.\n- **Build details:** Version and commit metadata are published in the GitHub Release notes alongside the signed APK and SHA-256 checksum.
+- **Menu:** 18 configured dishes with Single/Plate pricing where available.
+- **Customer flow:** Home, menu search and categories, cart, delivery/pickup checkout, order confirmation, order history and profile/settings.
+- **Local persistence:** Cart, customer details, saved addresses and order history are stored on-device.
+- **Food preferences:** Optional free-text note entered during checkout. It applies to the current order and is saved in its order details.
+- **Appearance:** App-wide dark theme with coordinated backgrounds, cards, inputs, text, navigation and system bars.
+- **Branding:** Emerald-and-gold launcher icon and orange food-ordering accent.
 - **Release APK:** [Download the latest signed APK](https://github.com/rath0darya/LBFP/releases/download/latest/LBFP-Customer.apk)
+- **Checksums:** The release includes `SHA256SUMS.txt` for APK integrity verification.
 
-## Current UI redesign\n\nThe customer home screen prioritizes finding food quickly: address and cart access remain at the top, search is prominent, category imagery is horizontally browsable, the hero uses a restrained gradient rather than a full dark overlay, and the menu appears sooner. The bottom navigation uses the app surface and content colors for theme consistency. The design adapts to system/light/dark appearance.\n\n## Important integration boundary
+## Current UI
 
-This repository does not currently include a restaurant order-management backend, live order tracking, or a payment gateway. Placing an order in the app creates a locally recorded demo order; it does not transmit it to restaurant staff or collect payment. Configure a real, secured backend and payment provider before using the app for live commerce.
+The home screen uses compact search, photo-led horizontal categories, a concise food hero banner and a fixed four-tab navigation bar. Checkout shows the order summary and offers an optional “Add food preference” text entry below the item list. Food preferences are no longer configured in Settings.
+
+## Integration boundary
+
+This repository does not currently include a restaurant order-management backend, live order tracking, or a payment gateway. Placing an order creates a locally recorded demo order; it does not transmit it to restaurant staff or collect payment. Delivery fee estimates depend on the address and routing service being resolvable. Configure a real, secured backend and payment provider before using the app for live commerce.
 
 ## Build and release
 
-Pushes to `main` run the single Android APK workflow. It builds a signed release and replaces the APK and SHA-256 checksum on the GitHub Release tagged `latest`.
+Pushes to `main` run the single Android APK workflow. It builds a signed release APK, calculates its SHA-256 checksum, updates the `latest` GitHub Release with build metadata and current feature notes, and replaces both release assets.
 
-Configure these repository Actions secrets:
+Required repository Actions secrets:
 
 - `KEYSTORE_BASE64`
 - `KEYSTORE_PASSWORD`
 - `KEY_ALIAS`
 - `KEY_PASSWORD`
 
-The app uses JDK 17 and Gradle 8.9.
+The workflow uses JDK 17 and Gradle 8.9.
