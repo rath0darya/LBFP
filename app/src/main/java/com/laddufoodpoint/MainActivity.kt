@@ -105,7 +105,7 @@ private fun foodPhoto(f:Food):String {
   "Jeera Fried Rice" -> "photo-1512058564366-18510be2db19"
   "Rumali Roti" -> "photo-1601050690597-df0568f70950"
   "Tandoori Roti" -> "photo-1601050690597-df0568f70950"
-  "Butter Naan" -> "photo-1626082927389-6cd097cdc6ec"
+  "Butter Naan" -> "photo-1601050690597-df0568f70950"
   else -> "photo-1565299624946-b28f40a0ae38"
  }
  return "https://images.unsplash.com/" + id + "?w=900&auto=format&fit=crop&q=85"
