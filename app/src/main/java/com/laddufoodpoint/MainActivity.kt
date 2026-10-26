@@ -86,12 +86,29 @@ private val menu=listOf(
  Food("Tandoori Roti","ROTI",13),Food("Butter Naan","ROTI",30)
 )
 private fun itemKey(f:Food,v:String)=f.name+"|"+v
-private fun foodPhoto(f:Food):String = when {
- f.name.contains("Chicken",true) && f.name.contains("Fried Rice",true) -> "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=900&auto=format&fit=crop&q=85"
- f.name.contains("Noodle",true) -> "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=900&auto=format&fit=crop&q=85"
- f.name.contains("Roti",true) || f.name.contains("Naan",true) -> "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=900&auto=format&fit=crop&q=85"
- f.category=="VEG" -> "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=900&auto=format&fit=crop&q=85"
- else -> "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=900&auto=format&fit=crop&q=85"
+private fun foodPhoto(f:Food):String {
+ val id = when(f.name) {
+  "Egg Fried Rice" -> "photo-1603133872878-684f208fb84b"
+  "Egg Bhurji" -> "photo-1525351484163-7529414344d8"
+  "Chicken Fried Rice" -> "photo-1603133872878-684f208fb84b"
+  "Egg Noodles" -> "photo-1569718212165-3a8278d5f624"
+  "Chicken 65" -> "photo-1603894584373-5ac82b2ae398"
+  "Chicken Manchurian" -> "photo-1604908176997-125f25cc6f3d"
+  "Chicken Drumstick" -> "photo-1626082927389-6cd097cdc6ec"
+  "Chicken Chilli" -> "photo-1603360946369-dc9bb6258143"
+  "Schezwan Chicken" -> "photo-1603894584373-5ac82b2ae398"
+  "Chicken Leg Piece (1 pc)" -> "photo-1626082927389-6cd097cdc6ec"
+  "Veg Fried Rice" -> "photo-1512058564366-18510be2db19"
+  "Veg Noodles" -> "photo-1569718212165-3a8278d5f624"
+  "Veg Manchurian" -> "photo-1601050690597-df0568f70950"
+  "Veg Manchurian Noodles" -> "photo-1569718212165-3a8278d5f624"
+  "Jeera Fried Rice" -> "photo-1512058564366-18510be2db19"
+  "Rumali Roti" -> "photo-1601050690597-df0568f70950"
+  "Tandoori Roti" -> "photo-1601050690597-df0568f70950"
+  "Butter Naan" -> "photo-1626082927389-6cd097cdc6ec"
+  else -> "photo-1565299624946-b28f40a0ae38"
+ }
+ return "https://images.unsplash.com/" + id + "?w=900&auto=format&fit=crop&q=85"
 }
 
 class MainActivity:ComponentActivity(){
@@ -105,7 +122,8 @@ class MainActivity:ComponentActivity(){
  var themeMode by remember { mutableStateOf(prefs.getString("theme_mode","system") ?: "system") }
  val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
  val darkMode = themeMode=="dark" || (themeMode=="system" && systemDark)
- SideEffect { appDarkTheme=darkMode; val activity=context as ComponentActivity; val bars=WindowCompat.getInsetsController(activity.window,activity.window.decorView); bars.isAppearanceLightStatusBars=!darkMode; bars.isAppearanceLightNavigationBars=!darkMode; activity.window.statusBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE; activity.window.navigationBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE }
+ appDarkTheme=darkMode
+ SideEffect { val activity=context as ComponentActivity; val bars=WindowCompat.getInsetsController(activity.window,activity.window.decorView); bars.isAppearanceLightStatusBars=!darkMode; bars.isAppearanceLightNavigationBars=!darkMode; activity.window.statusBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE; activity.window.navigationBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE }
  var tab by remember{mutableStateOf("Home")}
  var orderFilter by remember{mutableStateOf("All")}
  var selectedFood by remember{mutableStateOf<Food?>(null)}
@@ -450,7 +468,10 @@ class MainActivity:ComponentActivity(){
  }
  tab=="Help"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Help & support",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Quick answers for your order",color=Muted);listOf("Where is my order?","Orders are saved on this device only. Live restaurant confirmation and tracking are not connected.","How do I change an item?","Open the cart and use +, −, or edit the quantity field. You can also return to the menu to change serving size.","How does payment work?","Payment is not processed in this demo. Confirm payment options directly with the restaurant.","Need help with a bulk order?","Please contact Laddu Bhai Food Point directly; contact details are not configured in this app.").chunked(2).forEach{pair->Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(pair[0],fontWeight=FontWeight.Bold,color=Ink);Text(pair[1],fontSize=13.sp,color=Muted)}}};Button(onClick={tab="Profile"},modifier=Modifier.fillMaxWidth()){Text("Back to profile")}}
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
- Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted);if(profileGateMessage.isNotBlank())Text(profileGateMessage,fontSize=13.sp,color=Color(0xFFB3261E),fontWeight=FontWeight.SemiBold);
+ Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted)
+ Text("Appearance",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf(Triple("System",Icons.Default.SettingsBrightness,"system"),Triple("Light",Icons.Default.LightMode,"light"),Triple("Dark",Icons.Default.DarkMode,"dark")).forEach { (label,icon,mode) -> FilterChip(selected=themeMode==mode,onClick={themeMode=mode;prefs.edit().putString("theme_mode",mode).apply()},label={Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(icon,contentDescription=label,modifier=Modifier.size(17.dp));Text(label)}},colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Gold,selectedLabelColor=Color.White)) } }
+ if(profileGateMessage.isNotBlank())Text(profileGateMessage,fontSize=13.sp,color=Color(0xFFB3261E),fontWeight=FontWeight.SemiBold);
  Surface(color=Ink,shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("LADDU BHAI FOOD POINT",fontSize=11.sp,color=Gold,fontWeight=FontWeight.Bold);Text(if(name.isBlank()) "Your profile" else name,fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text(if(phone.isBlank()) "Add your mobile number below" else phone,color=Color(0xFFE0EAE3),fontSize=13.sp)}}
  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink);Spacer(Modifier.weight(1f));TextButton(onClick={editProfile=!editProfile}){Text(if(editProfile)"Done editing" else "Edit profile")}}
  if(editProfile){OutlinedTextField(name,{name=it},label={Text("Full name")},modifier=Modifier.fillMaxWidth(),singleLine=true);OutlinedTextField(phone,{phone=it.filter{ch->ch.isDigit()}.take(10)},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)}else{Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(name.ifBlank{"Name not added"},fontWeight=FontWeight.SemiBold,color=Ink);Text(phone.ifBlank{"Mobile number not added"},fontSize=13.sp,color=Muted)}}}
