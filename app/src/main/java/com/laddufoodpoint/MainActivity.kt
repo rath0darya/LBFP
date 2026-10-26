@@ -49,6 +49,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val Ink=Color(0xFF202124)
 private val Gold=Color(0xFFFC8019)
@@ -98,7 +100,9 @@ class MainActivity:ComponentActivity(){
  var phone by remember{mutableStateOf(prefs.getString("customer_phone","") ?: "")}
  var address by remember{mutableStateOf(prefs.getString("customer_address","") ?: "")}
  var detectedLocation by remember{mutableStateOf(prefs.getString("detected_location","") ?: "")}
- var deliveryDistanceKm by remember{mutableDoubleStateOf(prefs.getString("delivery_distance_km","0").orEmpty().toDoubleOrNull() ?: 0.0)}
+ var deliveryDistanceKm by remember{mutableDoubleStateOf(0.0)}
+ var distanceCalculating by remember { mutableStateOf(false) }
+ var profileGateMessage by remember { mutableStateOf("") }
  var locationMessage by remember{mutableStateOf("")}
  var currentLat by remember { mutableStateOf(prefs.getString("current_lat",null)?.toDoubleOrNull()) }
  var currentLon by remember { mutableStateOf(prefs.getString("current_lon",null)?.toDoubleOrNull()) }
@@ -361,7 +365,7 @@ class MainActivity:ComponentActivity(){
  if(cart.isEmpty())Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally){Icon(Icons.Default.ShoppingBag,null,tint=Gold,modifier=Modifier.size(46.dp));Text("Your bag is waiting",fontSize=21.sp,fontWeight=FontWeight.Bold);Text("Add a favourite from our menu",color=Muted);Button(onClick={cartOpen=false;tab="Menu"}){Text("Explore menu")}}}
  else{
  LazyColumn(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(9.dp)){items(cart.values.toList(),key={itemKey(it.food,it.variant)}){line->Surface(color=Color.White,shape=RoundedCornerShape(16.dp)){Row(Modifier.fillMaxWidth().padding(13.dp),verticalAlignment=Alignment.CenterVertically){AsyncImage(model=foodPhoto(line.food),contentDescription=line.food.name,contentScale=ContentScale.Crop,modifier=Modifier.size(76.dp).clip(RoundedCornerShape(14.dp)));Spacer(Modifier.width(12.dp));Column(Modifier.weight(1f)){Text(line.food.name,fontWeight=FontWeight.Bold,color=Ink);Text("${line.variant} · ₹${line.price} each",fontSize=12.sp,color=Muted);Text("₹${line.price*line.qty}",fontWeight=FontWeight.ExtraBold,color=Ink)};IconButton(onClick={changeQty(cart,{cart=it},line,-1)}){Icon(Icons.Default.Remove,null)};Text("${line.qty}",fontWeight=FontWeight.Bold);IconButton(onClick={changeQty(cart,{cart=it},line,1)}){Icon(Icons.Default.Add,null)}}}}}
- Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Item subtotal",fontSize=14.sp);Text("₹$total",fontSize=20.sp,fontWeight=FontWeight.ExtraBold)};Spacer(Modifier.height(10.dp));Button(onClick={cartOpen=false;checkout=true},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Continue to checkout",color=Gold)}}}
+ Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Item subtotal",fontSize=14.sp);Text("₹$total",fontSize=20.sp,fontWeight=FontWeight.ExtraBold)};Spacer(Modifier.height(10.dp));Button(onClick={if(name.isBlank() || !phone.matches(Regex("^\\d{10}$"))){cartOpen=false;checkout=false;tab="Profile";editProfile=true;profileGateMessage="Add your full name and valid 10-digit mobile number to continue checkout."}else{cartOpen=false;checkout=true}},modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Continue to checkout",color=Gold)}}}
  }
  }
  tab=="Orders"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp)){
