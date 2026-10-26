@@ -52,3 +52,9 @@ jobs:
             gh release create latest --title "LBFP Customer App" --notes "Latest signed APK. Package com.laddufoodpoint."
           fi
           gh release upload latest release/LBFP-Customer.apk release/SHA256SUMS.txt --clobber
+      - name: Update source archives to this commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -f latest "$GITHUB_SHA"
+          git push origin refs/tags/latest --force
