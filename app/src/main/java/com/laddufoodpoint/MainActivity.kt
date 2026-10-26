@@ -117,9 +117,9 @@ class MainActivity:ComponentActivity(){
 @Composable private fun LBFPApp(){
  val context = LocalContext.current
  val prefs = remember { context.getSharedPreferences("lbfp_customer_data", android.content.Context.MODE_PRIVATE) }
- var themeMode by remember { mutableStateOf(prefs.getString("theme_mode","dark") ?: "dark") }
+ var themeMode by remember { mutableStateOf(prefs.getString("theme_mode","system") ?: "system") }
  val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
- val darkMode = themeMode != "light"
+ val darkMode = when (themeMode) { "dark" -> true; "light" -> false; else -> systemDark }
  appDarkTheme=darkMode
  SideEffect { val activity=context as ComponentActivity; val bars=WindowCompat.getInsetsController(activity.window,activity.window.decorView); bars.isAppearanceLightStatusBars=!darkMode; bars.isAppearanceLightNavigationBars=!darkMode; activity.window.statusBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE; activity.window.navigationBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE }
  var tab by remember{mutableStateOf("Home")}
@@ -251,10 +251,10 @@ class MainActivity:ComponentActivity(){
   }
  }
  if(!checkout && !cartOpen && !lastOrder) NavigationBar(containerColor=CardColor, contentColor=Ink){
- NavigationBarItem(selected=tab=="Home",onClick={tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
- NavigationBarItem(selected=tab=="Menu",onClick={tab="Menu"},icon={Icon(Icons.Default.MenuBook,null)},label={Text("Menu")})
- NavigationBarItem(selected=tab=="Orders",onClick={tab="Orders"},icon={Icon(Icons.Default.ReceiptLong,null)},label={Text("Orders")})
- NavigationBarItem(selected=tab=="Profile"||tab=="Help",onClick={tab="Profile"},icon={Icon(Icons.Default.Settings,null)},label={Text("Settings")})
+ NavigationBarItem(selected=tab=="Home",onClick={selectedOrder=null;selectedFood=null;tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
+ NavigationBarItem(selected=tab=="Menu",onClick={selectedOrder=null;selectedFood=null;tab="Menu"},icon={Icon(Icons.Default.MenuBook,null)},label={Text("Menu")})
+ NavigationBarItem(selected=tab=="Orders",onClick={selectedOrder=null;selectedFood=null;tab="Orders"},icon={Icon(Icons.Default.ReceiptLong,null)},label={Text("Orders")})
+ NavigationBarItem(selected=tab=="Profile"||tab=="Help",onClick={selectedOrder=null;selectedFood=null;tab="Profile"},icon={Icon(Icons.Default.Settings,null)},label={Text("Settings")})
  }
  }
  }){padding->
@@ -471,7 +471,7 @@ class MainActivity:ComponentActivity(){
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
  Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted)
  Text("Appearance",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
- Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) { FilterChip(selected=darkMode,onClick={themeMode="dark";prefs.edit().putString("theme_mode","dark").apply()},label={Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(5.dp)){Icon(Icons.Default.DarkMode,contentDescription="Dark theme",modifier=Modifier.size(17.dp));Text("Dark theme")}},colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Gold,selectedLabelColor=Color.White)) }
+ Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (mode,label) -> FilterChip(selected=themeMode==mode,onClick={themeMode=mode;prefs.edit().putString("theme_mode",mode).apply()},label={Text(label)},colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Gold,selectedLabelColor=Color.White)) } }
  if(profileGateMessage.isNotBlank())Text(profileGateMessage,fontSize=13.sp,color=Color(0xFFB3261E),fontWeight=FontWeight.SemiBold);
  Surface(color=Ink,shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("LADDU BHAI FOOD POINT",fontSize=11.sp,color=Gold,fontWeight=FontWeight.Bold);Text(if(name.isBlank()) "Your profile" else name,fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text(if(phone.isBlank()) "Add your mobile number below" else phone,color=Color(0xFFE0EAE3),fontSize=13.sp)}}
  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink);Spacer(Modifier.weight(1f));TextButton(onClick={editProfile=!editProfile}){Text(if(editProfile)"Done editing" else "Edit profile")}}
@@ -638,7 +638,7 @@ private fun HomePage(
     val singleQty = cart[itemKey(f, "Single")]?.qty ?: 0
     val plateQty = cart[itemKey(f, "Plate")]?.qty ?: 0
     Row(
-        Modifier.fillMaxWidth().background(Color.White).clickable { onClick(f) }.padding(horizontal = 18.dp, vertical = 15.dp),
+        Modifier.fillMaxWidth().background(CardColor).clickable { onClick(f) }.padding(horizontal = 18.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f).padding(end = 12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -725,7 +725,7 @@ private fun setLineQty(cart:Map<String,Line>,set:(Map<String,Line>)->Unit,line:L
   Text("Choose your serving",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
   Row(horizontalArrangement=Arrangement.spacedBy(10.dp),modifier=Modifier.fillMaxWidth()){
    listOf("Single" to f.single).plus(if(f.plate!=null) listOf("Plate" to f.plate!!) else emptyList()).forEach{(v,p)->
-    Surface(color=if(variant==v)Color(0xFFFFF0BD) else Color.White,shape=RoundedCornerShape(16.dp),border=androidx.compose.foundation.BorderStroke(1.dp,if(variant==v)Gold else Color.LightGray),modifier=Modifier.weight(1f).clickable{variant=v}){
+    Surface(color=if(variant==v) if(appDarkTheme) Color(0xFF3A3025) else Color(0xFFFFF0BD) else CardColor,shape=RoundedCornerShape(16.dp),border=androidx.compose.foundation.BorderStroke(1.dp,if(variant==v)Gold else if(appDarkTheme) Color(0xFF383B42) else Color.LightGray),modifier=Modifier.weight(1f).clickable{variant=v}){
      Column(Modifier.padding(16.dp)){Text(v,fontWeight=FontWeight.Bold,color=Ink);Text("₹$p",fontSize=22.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}
     }
    }
