@@ -429,7 +429,7 @@ class MainActivity:ComponentActivity(){
              Button(
                  onClick = {
                      val datePrefix = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("ddMMyy", Locale.US))
-                     val dailySequence = ((orderHistory.mapNotNull { it.id.takeIf { id -> id.matches(Regex("[0-9]{8,}.*")) } }.filter { it.id.take(6) == datePrefix }.maxOfOrNull { it.id.drop(6).takeWhile { ch -> ch.isDigit() }.toIntOrNull() ?: 0 }) ?: 0) + 1
+                     val dailySequence = ((orderHistory.mapNotNull { order -> order.id.takeIf { id -> id.matches(Regex("[0-9]{8,}.*")) } }.filter { it.take(6) == datePrefix }.maxOfOrNull { it.drop(6).takeWhile { ch -> ch.isDigit() }.toIntOrNull() ?: 0 }) ?: 0) + 1
                      val typeCode = when { fulfillment == "Delivery" && paymentMethod == "Online" -> "DO"; fulfillment == "Delivery" -> "DC"; paymentMethod == "Online" -> "PO"; else -> "PC" }
                      val secureRandom = java.security.SecureRandom()
                      var generatedId: String
