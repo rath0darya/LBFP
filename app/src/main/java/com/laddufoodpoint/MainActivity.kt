@@ -62,6 +62,7 @@ private val Muted=Color(0xFF777B82)
 private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null)
 private data class Line(val food:Food,val variant:String,val price:Int,val qty:Int)
 private data class SavedAddress(val label:String,val details:String,val landmark:String="",val addressType:String="Other",val latitude:Double?=null,val longitude:Double?=null)
+private data class OrderRecord(val id:String,val total:Int,val description:String,val customerName:String,val phone:String,val address:String,val fulfillment:String,val paymentMethod:String,val itemsJson:String,val itemTotal:Int,val deliveryFee:Int,val packagingFee:Int,val distanceKm:Double,val preferences:String,val status:String,val createdAt:Long)
 private const val RESTAURANT_MAP_URL = "https://maps.app.goo.gl/hc9ea46RRy5WBW9t6?g_st=ac"
 private const val RESTAURANT_ADDRESS = "12-11-692, Warasiguda X Road, Secunderabad, Padmarao Nagar, Hyderabad"
 private val menu=listOf(
@@ -131,7 +132,8 @@ class MainActivity:ComponentActivity(){
    if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
  }
 
- var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); o.optInt("total") to o.optString("description") } }.getOrDefault(emptyList()))}
+ var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); OrderRecord(o.optString("id",o.optString("description")),o.optInt("total"),o.optString("description"),o.optString("customerName",prefs.getString("customer_name","") ?: ""),o.optString("phone",prefs.getString("customer_phone","") ?: ""),o.optString("address",prefs.getString("customer_address","") ?: ""),o.optString("fulfillment","Delivery"),o.optString("paymentMethod","Unknown"),o.optString("itemsJson","[]"),o.optInt("itemTotal",o.optInt("total")),o.optInt("deliveryFee"),o.optInt("packagingFee"),o.optDouble("distanceKm"),o.optString("preferences","No preference"),o.optString("status","Order received"),o.optLong("createdAt")) } }.getOrDefault(emptyList()))}
+ var selectedOrder by remember{mutableStateOf<OrderRecord?>(null)}
  var lastOrder by remember{mutableStateOf(false)}
  var fulfillment by remember{mutableStateOf("Delivery")}
  var paymentMethod by remember{mutableStateOf("Online")}
@@ -192,7 +194,7 @@ class MainActivity:ComponentActivity(){
    val savedCart=JSONArray()
    cart.values.forEach { l -> savedCart.put(JSONObject().put("name",l.food.name).put("variant",l.variant).put("price",l.price).put("qty",l.qty)) }
    val savedOrders=JSONArray()
-   orderHistory.forEach { o -> savedOrders.put(JSONObject().put("total",o.first).put("description",o.second)) }
+   orderHistory.forEach { o -> savedOrders.put(JSONObject().put("id",o.id).put("total",o.total).put("description",o.description).put("customerName",o.customerName).put("phone",o.phone).put("address",o.address).put("fulfillment",o.fulfillment).put("paymentMethod",o.paymentMethod).put("itemsJson",o.itemsJson).put("itemTotal",o.itemTotal).put("deliveryFee",o.deliveryFee).put("packagingFee",o.packagingFee).put("distanceKm",o.distanceKm).put("preferences",o.preferences).put("status",o.status).put("createdAt",o.createdAt)) }
    prefs.edit().putString("cart",savedCart.toString()).putString("orders",savedOrders.toString())
      .putString("customer_name",name).putString("customer_phone",phone)
      .putString("customer_address",address).putString("detected_location",detectedLocation).putString("food_preferences",preferences).putString("address_book",JSONArray().apply { addressBook.forEach { a -> put(JSONObject().put("label",a.label).put("details",a.details).put("landmark",a.landmark).put("addressType",a.addressType).put("lat",a.latitude).put("lon",a.longitude)) } }.toString()).apply()
@@ -204,7 +206,7 @@ class MainActivity:ComponentActivity(){
  val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+packagingFee
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
  if(showPermissionIntro) AlertDialog(onDismissRequest={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()},title={Text("A better ordering experience")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("Location: shows your current address and saved delivery places, and helps calculate distance from the restaurant.");Text("Notifications: can show order and service updates when those features are available. You can still use the app if you decline.")}},confirmButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply();locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}){Text("Continue")}},dismissButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()}){Text("Not now")}})
- BackHandler(enabled=selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
+ BackHandler(enabled=selectedOrder!=null||selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedOrder!=null -> selectedOrder=null; selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
  Scaffold(containerColor=Cream,topBar={
  TopAppBar(title={Column{
  Text("Laddu Bhai Food Point",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
@@ -227,6 +229,7 @@ class MainActivity:ComponentActivity(){
  }
  }){padding->
  when{
+ selectedOrder!=null -> OrderDetailPage(selectedOrder!!, onBack={selectedOrder=null})
  selectedFood!=null->FoodDetailPage(selectedFood!!,cart,{f,v,p->changeQty(cart,{cart=it},Line(f,v,p,cart[itemKey(f,v)]?.qty?:0),1)},{f,v,p,q->setLineQty(cart,{cart=it},Line(f,v,p,cart[itemKey(f,v)]?.qty?:0), (cart[itemKey(f,v)]?.qty?:0)+q)},{selectedFood=null},{f,v->cart[itemKey(f,v)]?.let{changeQty(cart,{cart=it},it,-1)}})
  lastOrder->Column(Modifier.padding(padding).fillMaxSize().padding(26.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){
  Box(Modifier.size(78.dp).background(Gold,CircleShape),contentAlignment=Alignment.Center){Text("✓",fontSize=42.sp,fontWeight=FontWeight.Black)}
@@ -359,7 +362,7 @@ class MainActivity:ComponentActivity(){
                      }
                      if (fulfillment == "Pickup") Text("Collect your order at the restaurant.", fontSize = 13.sp, color = Muted)
                      Text("Payment mode", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Ink)
-                     (if (fulfillment == "Delivery") listOf("Online", "Cash on Delivery") else listOf("At Restaurant", "Online")).forEach { choice ->
+                     (if (fulfillment == "Delivery") listOf("Online", "Cash on Delivery") else listOf("Online", "Cash on Delivery")).forEach { choice ->
                          Surface(
                              color = if (paymentMethod == choice) Color(0xFFE4F1E8) else Color(0xFFF8F8F4),
                              shape = RoundedCornerShape(12.dp),
@@ -394,8 +397,15 @@ class MainActivity:ComponentActivity(){
              }
              Button(
                  onClick = {
-                     orderNumber = "LBFP-" + System.currentTimeMillis().toString().takeLast(6)
-                     orderHistory = listOf(grandTotal to "Order placed · $orderNumber · $fulfillment · $paymentMethod") + orderHistory
+                     val datePrefix = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("ddMMyy", Locale.US))
+                     val dailySequence = ((orderHistory.mapNotNull { it.id.takeIf { id -> id.matches(Regex("[0-9]{8,}.*")) } }.filter { it.id.take(6) == datePrefix }.maxOfOrNull { it.id.drop(6).takeWhile { ch -> ch.isDigit() }.toIntOrNull() ?: 0 }) ?: 0) + 1
+                     val typeCode = when { fulfillment == "Delivery" && paymentMethod == "Online" -> "DO"; fulfillment == "Delivery" -> "DC"; paymentMethod == "Online" -> "PO"; else -> "PC" }
+                     val secureRandom = java.security.SecureRandom()
+                     var generatedId: String
+                     do { generatedId = datePrefix + dailySequence.toString().padStart(2, '0') + typeCode + (1000 + secureRandom.nextInt(9000)).toString() } while (orderHistory.any { it.id == generatedId })
+                     orderNumber = generatedId
+                     val orderItems = JSONArray().apply { cart.values.forEach { line -> put(JSONObject().put("name",line.food.name).put("variant",line.variant).put("price",line.price).put("qty",line.qty).put("lineTotal",line.price*line.qty)) } }.toString()
+                     orderHistory = listOf(OrderRecord(generatedId,grandTotal,"Order placed · " + generatedId,name,phone,address,fulfillment,paymentMethod,orderItems,total,if(fulfillment=="Delivery") deliveryFee else 0,packagingFee,deliveryDistanceKm,preferences,"Order received",System.currentTimeMillis())) + orderHistory + orderHistory
                      checkout = false
                      cartOpen = false
                      lastOrder = true
@@ -423,7 +433,7 @@ class MainActivity:ComponentActivity(){
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("All","Ongoing","Completed").forEach{filter->FilterChip(selected=orderFilter==filter,onClick={orderFilter=filter},label={Text(filter)},colors=FilterChipDefaults.filterChipColors(selectedContainerColor=Color(0xFF18794E),selectedLabelColor=Color.White))}}
  Spacer(Modifier.height(10.dp))
  if(orderHistory.isEmpty())Surface(color=Color.White,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Icon(Icons.Default.ReceiptLong,null,tint=Gold,modifier=Modifier.size(36.dp));Spacer(Modifier.height(8.dp));Text("No orders yet",fontSize=20.sp,fontWeight=FontWeight.Bold);Text("Your next favourite meal starts here.",color=Muted);Button(onClick={tab="Menu"}){Text("Browse menu")}}}
- else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){items(orderHistory){o->Surface(color=Color.White,shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(16.dp)){Text(o.second,fontWeight=FontWeight.Bold);Text("Laddu Bhai Food Point",color=Muted);Text("₹${o.first}",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("Saved locally · not transmitted to restaurant",fontSize=11.sp,color=Muted)}}}}
+ else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){items(orderHistory){o->Surface(color=Color.White,shape=RoundedCornerShape(16.dp),modifier=Modifier.fillMaxWidth().clickable { selectedOrder=o }){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text(o.id,fontWeight=FontWeight.ExtraBold,color=Ink);Text(o.status,fontSize=11.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold)};Text("Laddu Bhai Food Point",color=Muted);Text("₹${o.total}",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("${o.fulfillment} · ${o.paymentMethod}",fontSize=12.sp,color=Muted);Text("Tap to view full order details  →",fontSize=12.sp,color=Gold,fontWeight=FontWeight.Bold)}}}}
  }
  tab=="Help"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Help & support",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Quick answers for your order",color=Muted);listOf("Where is my order?","Orders are saved on this device only. Live restaurant confirmation and tracking are not connected.","How do I change an item?","Open the cart and use +, −, or edit the quantity field. You can also return to the menu to change serving size.","How does payment work?","Payment is not processed in this demo. Confirm payment options directly with the restaurant.","Need help with a bulk order?","Please contact Laddu Bhai Food Point directly; contact details are not configured in this app.").chunked(2).forEach{pair->Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(pair[0],fontWeight=FontWeight.Bold,color=Ink);Text(pair[1],fontSize=13.sp,color=Muted)}}};Button(onClick={tab="Profile"},modifier=Modifier.fillMaxWidth()){Text("Back to profile")}}
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
