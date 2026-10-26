@@ -1,11 +1,24 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#F7F0DE" android:pathData="M54,7 L61,17 L74,13 L77,26 L90,31 L85,44 L96,54 L85,64 L90,77 L77,82 L74,95 L61,91 L54,101 L47,91 L34,95 L31,82 L18,77 L23,64 L12,54 L23,44 L18,31 L31,26 L34,13 L47,17 Z"/>
-    <path android:fillColor="#123D2B" android:pathData="M54,15 L59,23 L70,20 L72,31 L83,35 L79,46 L88,54 L79,62 L83,73 L72,77 L70,88 L59,85 L54,93 L49,85 L38,88 L36,77 L25,73 L29,62 L20,54 L29,46 L25,35 L36,31 L38,20 L49,23 Z"/>
-    <path android:fillColor="#D8AC4E" android:pathData="M54,24 L57,30 L64,28 L66,35 L73,38 L70,45 L76,50 L70,55 L73,62 L66,65 L64,72 L57,70 L54,76 L51,70 L44,72 L42,65 L35,62 L38,55 L32,50 L38,45 L35,38 L42,35 L44,28 L51,30 Z"/>
-    <path android:fillColor="#123D2B" android:pathData="M54,29 L59,39 L70,39 L62,47 L65,58 L54,52 L43,58 L46,47 L38,39 L49,39 Z"/>
-    <path android:fillColor="#FFF8E7" android:pathData="M31,60 C31,51 41,44 54,44 C67,44 77,51 77,60 L72,69 C64,76 44,76 36,69 Z"/>
-    <path android:fillColor="#D8AC4E" android:pathData="M34,59 L74,59 L69,67 C62,73 46,73 39,67 Z"/>
-    <path android:fillColor="#123D2B" android:pathData="M38,62 L70,62 L67,66 C61,70 47,70 41,66 Z"/>
-    <path android:fillColor="#D8AC4E" android:pathData="M54,31 C49,36 50,41 54,44 C58,41 59,36 54,31 Z"/>
-    <path android:fillColor="#FFF8E7" android:pathData="M39,79 L69,79 L66,82 L42,82 Z M44,85 L64,85 L62,88 L46,88 Z"/>
+    <!-- Warm, premium food mark: steaming rice beneath a lifted serving cloche. -->
+    <path android:fillColor="#123D2B" android:pathData="M0,0h108v108h-108z"/>
+    <path android:fillColor="#D9AD4E" android:pathData="M54,7 C80,7 101,28 101,54 C101,80 80,101 54,101 C28,101 7,80 7,54 C7,28 28,7 54,7 Z"/>
+    <path android:fillColor="#0B2B20" android:pathData="M54,11 C78,11 97,30 97,54 C97,78 78,97 54,97 C30,97 11,78 11,54 C11,30 30,11 54,11 Z"/>
+    <!-- Decorative steam -->
+    <path android:fillColor="#00000000" android:strokeColor="#E9E1CF" android:strokeWidth="2.2" android:strokeLineCap="round" android:pathData="M43,39 C35,32 45,28 41,22 M55,36 C48,29 59,25 55,19 M66,39 C60,33 69,29 66,24"/>
+    <!-- Rice mound -->
+    <path android:fillColor="#F2B82E" android:pathData="M20,69 C23,56 36,48 54,48 C72,48 85,56 88,69 L82,78 C67,86 41,86 26,78 Z"/>
+    <path android:fillColor="#FFD45A" android:pathData="M28,65 C34,56 43,53 54,53 C65,53 76,58 81,66 C67,72 42,73 28,65 Z"/>
+    <!-- Grain details -->
+    <path android:fillColor="#FFF0A6" android:pathData="M35,64 l6,-3 3,2 -6,3 z M48,58 l6,-2 3,2 -6,2 z M62,62 l6,-2 3,2 -6,3 z M43,70 l6,-2 3,2 -6,2 z M65,71 l6,-2 3,2 -6,3 z"/>
+    <path android:fillColor="#A92D25" android:pathData="M38,60 a2,2 0,1 0,0.1 0 M57,66 a2,2 0,1 0,0.1 0 M73,66 a2,2 0,1 0,0.1 0 M51,74 a2,2 0,1 0,0.1 0 M31,72 a2,2 0,1 0,0.1 0"/>
+    <path android:fillColor="#3B7848" android:pathData="M46,62 C41,56 37,60 42,64 C38,66 42,69 46,64 C50,69 54,65 49,62 C52,57 47,56 46,62 Z M69,57 C64,52 60,56 65,60 C61,63 65,65 69,60 C73,65 77,61 72,57 C75,53 70,52 69,57 Z"/>
+    <!-- Silver serving cloche, lifted to reveal the food -->
+    <path android:fillColor="#BFC8C8" android:pathData="M20,58 C22,38 37,25 55,25 C67,25 77,31 83,41 L78,47 C71,37 62,33 52,34 C40,35 31,44 29,57 Z"/>
+    <path android:fillColor="#F5F7F4" android:pathData="M24,53 C27,38 40,29 54,29 C64,29 73,34 78,42 L74,44 C68,36 60,33 52,35 C41,36 33,44 31,54 Z"/>
+    <path android:fillColor="#7F8D8D" android:pathData="M20,58 L29,57 C31,44 40,35 52,34 C62,33 71,37 78,47 L83,41 L86,47 L80,55 C72,44 64,40 53,41 C42,42 35,49 34,60 Z"/>
+    <path android:fillColor="#E4E9E7" android:pathData="M48,30 C46,25 49,20 54,18 C59,20 61,24 59,29 L56,32 L51,32 Z"/>
+    <path android:fillColor="#A8B3B2" android:pathData="M51,20 C53,16 57,16 59,20 L58,23 L52,23 Z"/>
+    <!-- Ornate plate rim -->
+    <path android:fillColor="#E5E8E3" android:pathData="M17,76 C31,88 77,88 91,76 L87,81 C70,93 38,93 21,81 Z"/>
+    <path android:fillColor="#AAB5B2" android:pathData="M21,80 C39,89 69,89 87,80 L84,83 C68,91 40,91 24,83 Z"/>
 </vector>
