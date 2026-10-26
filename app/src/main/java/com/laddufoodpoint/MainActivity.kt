@@ -167,7 +167,8 @@ class MainActivity:ComponentActivity(){
  var fulfillment by remember{mutableStateOf("Delivery")}
  var paymentMethod by remember{mutableStateOf("Online")}
  var orderNumber by remember{mutableStateOf("LBFP-0001")}
- var preferences by remember{mutableStateOf("")}\n  var showFoodPreferenceInput by remember{mutableStateOf(false)}
+ var preferences by remember{mutableStateOf("")}
+  var showFoodPreferenceInput by remember{mutableStateOf(false)}
  LaunchedEffect(address, fulfillment, addressBook) {
    if (fulfillment != "Delivery" || address.isBlank()) {
      deliveryDistanceKm = 0.0
