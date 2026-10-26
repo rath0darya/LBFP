@@ -5,6 +5,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.location.LocationManager
+import android.os.Build
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -49,6 +52,9 @@ private val Cream=Color(0xFFFFFFFF)
 private val Muted=Color(0xFF777B82)
 private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null)
 private data class Line(val food:Food,val variant:String,val price:Int,val qty:Int)
+private data class SavedAddress(val label:String,val details:String,val latitude:Double?=null,val longitude:Double?=null)
+private const val RESTAURANT_MAP_URL = "https://maps.app.goo.gl/hc9ea46RRy5WBW9t6?g_st=ac"
+private const val RESTAURANT_ADDRESS = "12-11-692, Warasiguda X Road, Secunderabad, Padmarao Nagar, Hyderabad"
 private val menu=listOf(
  Food("Egg Fried Rice","NON-VEG",70,130),Food("Egg Bhurji","NON-VEG",60,120),
  Food("Chicken Fried Rice","NON-VEG",100,170),Food("Egg Noodles","NON-VEG",70,130),
@@ -90,9 +96,25 @@ class MainActivity:ComponentActivity(){
  var detectedLocation by remember{mutableStateOf(prefs.getString("detected_location","") ?: "")}
  var deliveryDistanceKm by remember{mutableDoubleStateOf(prefs.getString("delivery_distance_km","0").orEmpty().toDoubleOrNull() ?: 0.0)}
  var locationMessage by remember{mutableStateOf("")}
+ var currentLat by remember { mutableStateOf(prefs.getString("current_lat",null)?.toDoubleOrNull()) }
+ var currentLon by remember { mutableStateOf(prefs.getString("current_lon",null)?.toDoubleOrNull()) }
+ var showPermissionIntro by remember { mutableStateOf(!prefs.getBoolean("permission_intro_seen",false)) }
+ var showAddressEditor by remember { mutableStateOf(false) }
+ var editingAddressLabel by remember { mutableStateOf("Home") }
+ var editingAddressText by remember { mutableStateOf("") }
+ var addressBook by remember { mutableStateOf(runCatching { val a=JSONArray(prefs.getString("address_book","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); SavedAddress(o.optString("label"),o.optString("details"),if(o.isNull("lat")) null else o.optDouble("lat"),if(o.isNull("lon")) null else o.optDouble("lon")) } }.getOrDefault(emptyList())) }
  val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
-   if (grants.values.any { it }) { try { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager; val loc=listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER).mapNotNull { p -> runCatching { lm.getLastKnownLocation(p) }.getOrNull() }.maxByOrNull { it.time }; if(loc!=null){ detectedLocation=runCatching { Geocoder(context,Locale.getDefault()).getFromLocation(loc.latitude,loc.longitude,1)?.firstOrNull()?.getAddressLine(0) }.getOrNull() ?: "${loc.latitude}, ${loc.longitude}"; address=detectedLocation; locationMessage="Current location detected" } else locationMessage="Location unavailable. Turn on GPS and try again." } catch(e:Exception){locationMessage="Could not detect location. Enter address manually."} } else locationMessage="Location permission denied. Enter address manually."
+   if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true || grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
+     try { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
+       val loc=listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER).mapNotNull { p -> runCatching { if(lm.isProviderEnabled(p)) lm.getLastKnownLocation(p) else null }.getOrNull() }.maxByOrNull { it.time }
+       if(loc!=null){ currentLat=loc.latitude; currentLon=loc.longitude; detectedLocation=runCatching { Geocoder(context,Locale.getDefault()).getFromLocation(loc.latitude,loc.longitude,1)?.firstOrNull()?.getAddressLine(0) }.getOrNull() ?: "%.6f, %.6f".format(Locale.US,loc.latitude,loc.longitude); address=detectedLocation; locationMessage="Location updated"; prefs.edit().putString("current_lat",loc.latitude.toString()).putString("current_lon",loc.longitude.toString()).apply() }
+       else locationMessage="Location permission granted. Turn on device Location and tap Detect again."
+     } catch(e:Exception){locationMessage="Could not resolve address. Enter it manually."}
+   } else locationMessage="Location permission not granted. You can still enter an address manually."
+   prefs.edit().putBoolean("permission_intro_seen",true).apply()
  }
+ val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> locationMessage = if(granted) "Notifications enabled." else "Notifications are off; you can still use the app." }
+
  var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); o.optInt("total") to o.optString("description") } }.getOrDefault(emptyList()))}
  var lastOrder by remember{mutableStateOf(false)}
  var fulfillment by remember{mutableStateOf("Delivery")}
@@ -106,7 +128,7 @@ class MainActivity:ComponentActivity(){
    orderHistory.forEach { o -> savedOrders.put(JSONObject().put("total",o.first).put("description",o.second)) }
    prefs.edit().putString("cart",savedCart.toString()).putString("orders",savedOrders.toString())
      .putString("customer_name",name).putString("customer_phone",phone)
-     .putString("customer_address",address).putString("detected_location",detectedLocation).putString("delivery_distance_km",deliveryDistanceKm.toString()).putString("food_preferences",preferences).apply()
+     .putString("customer_address",address).putString("detected_location",detectedLocation).putString("delivery_distance_km",deliveryDistanceKm.toString()).putString("food_preferences",preferences).putString("address_book",JSONArray().apply { addressBook.forEach { a -> put(JSONObject().put("label",a.label).put("details",a.details).put("lat",a.latitude).put("lon",a.longitude)) } }.toString()).apply()
  }
  val count=cart.values.sumOf{it.qty}
  val total=cart.values.sumOf{it.qty*it.price}
@@ -114,11 +136,12 @@ class MainActivity:ComponentActivity(){
  val packagingFee=if(cart.isEmpty()) 0 else 10
  val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+(if(fulfillment=="Delivery") packagingFee else 0)
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
+ if(showPermissionIntro) AlertDialog(onDismissRequest={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()},title={Text("A better ordering experience")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("Location: shows your current address and saved delivery places, and helps calculate distance from the restaurant.");Text("Notifications: can show order and service updates when those features are available. You can still use the app if you decline.")}},confirmButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply();locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION));if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)}){Text("Continue")}},dismissButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()}){Text("Not now")}})
  BackHandler(enabled=selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
  Scaffold(containerColor=Cream,topBar={
  TopAppBar(title={Column{
  Text("Laddu Bhai Food Point",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
-  Text("DELIVERING TO · ${if(detectedLocation.isNotBlank()) detectedLocation.take(36) else "SET YOUR LOCATION"}",fontSize=10.sp,color=Muted,letterSpacing=.2.sp,maxLines=1,overflow=TextOverflow.Ellipsis)
+  Text(if(detectedLocation.isNotBlank()) "⌖  ${detectedLocation.take(48)}" else "⌖  Tap to detect your current location",fontSize=10.sp,color=Muted,letterSpacing=.2.sp,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.clickable { if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED) { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager; val loc=listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER).mapNotNull { p -> runCatching { if(lm.isProviderEnabled(p)) lm.getLastKnownLocation(p) else null }.getOrNull() }.maxByOrNull { it.time }; if(loc!=null){currentLat=loc.latitude;currentLon=loc.longitude;detectedLocation=runCatching { Geocoder(context,Locale.getDefault()).getFromLocation(loc.latitude,loc.longitude,1)?.firstOrNull()?.getAddressLine(0) }.getOrNull() ?: "%.6f, %.6f".format(Locale.US,loc.latitude,loc.longitude);address=detectedLocation;locationMessage="Location updated"} else locationMessage="Turn on GPS and retry"} else locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) })
  }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
  },bottomBar={
  if(!cartOpen&&!checkout&&!lastOrder&&selectedFood==null) Column {
@@ -189,21 +212,21 @@ class MainActivity:ComponentActivity(){
  else LazyColumn(verticalArrangement=Arrangement.spacedBy(10.dp)){items(orderHistory){o->Surface(color=Color.White,shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(16.dp)){Text(o.second,fontWeight=FontWeight.Bold);Text("Laddu Bhai Food Point",color=Muted);Text("₹${o.first}",fontWeight=FontWeight.ExtraBold,fontSize=20.sp);Text("Saved locally · not transmitted to restaurant",fontSize=11.sp,color=Muted)}}}}
  }
  tab=="Help"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Help & support",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Quick answers for your order",color=Muted);listOf("Where is my order?","Orders are saved on this device only. Live restaurant confirmation and tracking are not connected.","How do I change an item?","Open the cart and use +, −, or edit the quantity field. You can also return to the menu to change serving size.","How does payment work?","Payment is not processed in this demo. Confirm payment options directly with the restaurant.","Need help with a bulk order?","Please contact Laddu Bhai Food Point directly; contact details are not configured in this app.").chunked(2).forEach{pair->Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(pair[0],fontWeight=FontWeight.Bold,color=Ink);Text(pair[1],fontSize=13.sp,color=Muted)}}};Button(onClick={tab="Profile"},modifier=Modifier.fillMaxWidth()){Text("Back to profile")}}
- tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp)){
- Surface(color=Ink,shape=RoundedCornerShape(24.dp)){Column(Modifier.fillMaxWidth().padding(22.dp)){Text("LBFP",fontSize=12.sp,color=Gold,fontWeight=FontWeight.Bold,letterSpacing=2.sp);Text("Good Food, Happy Mood",fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text("Laddu Bhai Food Point",color=Color.LightGray)
- Text("Geometric-inspired LBFP identity",fontSize=11.sp,color=Color(0xFFE0EAE3))}}
- Spacer(Modifier.height(16.dp));Text("Your details",fontSize=21.sp,fontWeight=FontWeight.Bold)
- OutlinedTextField(name,{name=it},label={Text("Name")},modifier=Modifier.fillMaxWidth(),singleLine=true)
- OutlinedTextField(phone,{phone=it.filter{c->c.isDigit()}},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)
- OutlinedTextField(address,{address=it},label={Text("Delivery address")},modifier=Modifier.fillMaxWidth(),minLines=2)
- Text("Party orders",fontSize=18.sp,fontWeight=FontWeight.Bold,color=Ink)
-Text("For bulk orders or catering, contact the restaurant directly.",color=Muted,fontSize=13.sp)
-Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Orders"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.ReceiptLong,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Order history",fontWeight=FontWeight.Bold,color=Ink);Text("View locally saved orders",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
-Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Help"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Person,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Help & support",fontWeight=FontWeight.Bold,color=Ink);Text("FAQs, order and payment help",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
- Spacer(Modifier.height(8.dp))
- Text("Food preferences",fontSize=18.sp,fontWeight=FontWeight.Bold,color=Ink)
- listOf("No onions","Less spicy","Extra spicy","No preference").forEach{choice->Surface(color=Color.White,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().clickable{preferences=choice}){Row(Modifier.padding(horizontal=12.dp,vertical=5.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(selected=preferences==choice,onClick={preferences=choice},colors=RadioButtonDefaults.colors(selectedColor=Color(0xFF18794E)));Text(choice,color=Ink)}}}
- Text("Preference selected: $preferences",fontSize=12.sp,color=Muted)
+ tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
+ Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted)
+ Surface(color=Ink,shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("LADDU BHAI FOOD POINT",fontSize=11.sp,color=Gold,fontWeight=FontWeight.Bold);Text(if(name.isBlank()) "Your profile" else name,fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text(if(phone.isBlank()) "Add your mobile number below" else phone,color=Color(0xFFE0EAE3),fontSize=13.sp)}}
+ Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
+ OutlinedTextField(name,{name=it},label={Text("Full name")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+ OutlinedTextField(phone,{phone=it.filter{ch->ch.isDigit()}.take(10)},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)
+ Text("Address book",fontSize=21.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Save places like Home, Work, Office and Other.",fontSize=12.sp,color=Muted)
+ addressBook.forEach { saved -> Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(saved.label,fontWeight=FontWeight.Bold,color=Ink);Text(saved.details,fontSize=12.sp,color=Muted,maxLines=2)};TextButton(onClick={address=saved.details;detectedLocation=saved.details;currentLat=saved.latitude;currentLon=saved.longitude}){Text("Use")};TextButton(onClick={editingAddressLabel=saved.label;editingAddressText=saved.details;showAddressEditor=true}){Text("Edit")};TextButton(onClick={addressBook=addressBook.filterNot{it.label==saved.label}}){Text("Delete",color=Color(0xFFB3261E))}}} }
+ Row(horizontalArrangement=Arrangement.spacedBy(5.dp),modifier=Modifier.fillMaxWidth()){listOf("Home","Work","Office","Other").forEach{lab->OutlinedButton(onClick={editingAddressLabel=lab;editingAddressText=address;showAddressEditor=true},modifier=Modifier.weight(1f),contentPadding=PaddingValues(horizontal=3.dp)){Text("+ $lab",fontSize=10.sp)}}}
+ Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Orders"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.ReceiptLong,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Order history",fontWeight=FontWeight.Bold,color=Ink);Text("Orders saved on this device",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
+ Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Help"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Person,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Help & support",fontWeight=FontWeight.Bold,color=Ink);Text("FAQs, order and payment help",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
+ Text("Food preferences",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
+ listOf("No onions","Less spicy","Extra spicy","No preference").forEach{choice->Surface(color=Color.White,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().clickable{preferences=choice}){Row(Modifier.padding(horizontal=12.dp,vertical=2.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(selected=preferences==choice,onClick={preferences=choice},colors=RadioButtonDefaults.colors(selectedColor=Color(0xFF18794E)));Text(choice,color=Ink)}}}
+ Text("Permissions",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
+ Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){Column(Modifier.padding(14.dp)){Text("Location",fontWeight=FontWeight.Bold,color=Ink);Text("Used to detect your address and choose saved delivery locations.",fontSize=12.sp,color=Muted);TextButton(onClick={locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}){Text("Grant / refresh location permission")};Text("Notifications",fontWeight=FontWeight.Bold,color=Ink);Text("Used for order updates when supported.",fontSize=12.sp,color=Muted);TextButton(onClick={if(Build.VERSION.SDK_INT>=33)notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)else locationMessage="This Android version does not require notification runtime permission."}){Text("Manage notification permission")};if(locationMessage.isNotBlank())Text(locationMessage,fontSize=12.sp,color=Muted)}}
  }
  else->HomePage(padding,tab,category,{category=it;tab="Menu"},cart,
  onAdd={f,v,price->changeQty(cart,{cart=it},Line(f,v,price,cart[itemKey(f,v)]?.qty?:0),1)},
@@ -213,6 +236,8 @@ Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fill
  }
  }
  }
+
+ if(showAddressEditor) AlertDialog(onDismissRequest={showAddressEditor=false},title={Text("Save address")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("Choose a label and enter the complete address.");Row(horizontalArrangement=Arrangement.spacedBy(4.dp)){listOf("Home","Work","Office","Other").forEach{lab->FilterChip(selected=editingAddressLabel==lab,onClick={editingAddressLabel=lab},label={Text(lab)})}};OutlinedTextField(value=editingAddressText,onValueChange={editingAddressText=it},label={Text("Full address")},minLines=3,modifier=Modifier.fillMaxWidth())}},confirmButton={TextButton(onClick={if(editingAddressText.isNotBlank()){addressBook=addressBook.filterNot{it.label==editingAddressLabel}+SavedAddress(editingAddressLabel,editingAddressText,if(editingAddressText==detectedLocation)currentLat else null,if(editingAddressText==detectedLocation)currentLon else null);address=editingAddressText;showAddressEditor=false}}){Text("Save address")}},dismissButton={TextButton(onClick={showAddressEditor=false}){Text("Cancel")}})
 }
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
