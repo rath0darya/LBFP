@@ -122,7 +122,7 @@ class MainActivity:ComponentActivity(){
  var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); o.optInt("total") to o.optString("description") } }.getOrDefault(emptyList()))}
  var lastOrder by remember{mutableStateOf(false)}
  var fulfillment by remember{mutableStateOf("Delivery")}
- var paymentMethod by remember{mutableStateOf("Pay at restaurant")}
+ var paymentMethod by remember{mutableStateOf("Online")}
  var orderNumber by remember{mutableStateOf("LBFP-0001")}
  var preferences by remember{mutableStateOf(prefs.getString("food_preferences","No onions") ?: "No onions") }
  LaunchedEffect(cart,name,phone,address,preferences,orderHistory) {
@@ -233,9 +233,8 @@ class MainActivity:ComponentActivity(){
  Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
  OutlinedTextField(name,{name=it},label={Text("Full name")},modifier=Modifier.fillMaxWidth(),singleLine=true)
  OutlinedTextField(phone,{phone=it.filter{ch->ch.isDigit()}.take(10)},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)
- Text("Address book",fontSize=21.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Save places like Home, Work, Office and Other.",fontSize=12.sp,color=Muted)
+ Text("Address book",fontSize=21.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Save any place with your own label, address type and landmark.",fontSize=12.sp,color=Muted)
  addressBook.forEach { saved -> Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(saved.label,fontWeight=FontWeight.Bold,color=Ink);Text(saved.details + if(saved.landmark.isNotBlank()) " · Near ${saved.landmark}" else "",fontSize=12.sp,color=Muted,maxLines=2)};TextButton(onClick={address=saved.details;detectedLocation=saved.details;currentLat=saved.latitude;currentLon=saved.longitude}){Text("Use")};TextButton(onClick={editingAddressLabel=saved.label;editingAddressType=saved.addressType;editingLandmark=saved.landmark;editingAddressText=saved.details;showAddressEditor=true}){Text("Edit")};TextButton(onClick={addressBook=addressBook.filterNot{it.label==saved.label}}){Text("Delete",color=Color(0xFFB3261E))}}} }
- Row(horizontalArrangement=Arrangement.spacedBy(5.dp),modifier=Modifier.fillMaxWidth()){listOf("Home","Work","Office","Other").forEach{lab->OutlinedButton(onClick={editingAddressLabel=lab;editingAddressText=address;showAddressEditor=true},modifier=Modifier.weight(1f),contentPadding=PaddingValues(horizontal=3.dp)){Text("+ $lab",fontSize=10.sp)}}}
  Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Orders"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.ReceiptLong,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Order history",fontWeight=FontWeight.Bold,color=Ink);Text("Orders saved on this device",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
  Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable{tab="Help"}){Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.Person,null,tint=Ink);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text("Help & support",fontWeight=FontWeight.Bold,color=Ink);Text("FAQs, order and payment help",fontSize=12.sp,color=Muted)};Text("→",color=Ink,fontSize=20.sp)}}
  Text("Food preferences",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
