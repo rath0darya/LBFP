@@ -104,6 +104,7 @@ class MainActivity:ComponentActivity(){
  var editingAddressLabel by remember { mutableStateOf("Home") }
  var editingAddressText by remember { mutableStateOf("") }
  var addressBook by remember { mutableStateOf(runCatching { val a=JSONArray(prefs.getString("address_book","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); SavedAddress(o.optString("label"),o.optString("details"),if(o.isNull("lat")) null else o.optDouble("lat"),if(o.isNull("lon")) null else o.optDouble("lon")) } }.getOrDefault(emptyList())) }
+ val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> locationMessage = if(granted) "Notifications enabled." else "Notifications are off; you can still use the app." }
  val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
    if (grants[Manifest.permission.ACCESS_FINE_LOCATION] == true || grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true) {
      try { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager
@@ -115,7 +116,6 @@ class MainActivity:ComponentActivity(){
    prefs.edit().putBoolean("permission_intro_seen",true).apply()
    if(Build.VERSION.SDK_INT>=33 && ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
  }
- val notificationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> locationMessage = if(granted) "Notifications enabled." else "Notifications are off; you can still use the app." }
 
  var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); o.optInt("total") to o.optString("description") } }.getOrDefault(emptyList()))}
  var lastOrder by remember{mutableStateOf(false)}
