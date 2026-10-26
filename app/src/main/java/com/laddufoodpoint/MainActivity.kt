@@ -1,6 +1,14 @@
 package com.laddufoodpoint
 
 import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
+import android.location.Geocoder
+import android.location.LocationManager
+import androidx.activity.compose.BackHandler
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import java.util.Locale
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -79,6 +87,12 @@ class MainActivity:ComponentActivity(){
  var name by remember{mutableStateOf(prefs.getString("customer_name","") ?: "")}
  var phone by remember{mutableStateOf(prefs.getString("customer_phone","") ?: "")}
  var address by remember{mutableStateOf(prefs.getString("customer_address","") ?: "")}
+ var detectedLocation by remember{mutableStateOf(prefs.getString("detected_location","") ?: "")}
+ var deliveryDistanceKm by remember{mutableDoubleStateOf(prefs.getString("delivery_distance_km","0").orEmpty().toDoubleOrNull() ?: 0.0)}
+ var locationMessage by remember{mutableStateOf("")}
+ val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+   if (grants.values.any { it }) { try { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager; val loc=listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER).mapNotNull { p -> runCatching { lm.getLastKnownLocation(p) }.getOrNull() }.maxByOrNull { it.time }; if(loc!=null){ detectedLocation=runCatching { Geocoder(context,Locale.getDefault()).getFromLocation(loc.latitude,loc.longitude,1)?.firstOrNull()?.getAddressLine(0) }.getOrNull() ?: "${loc.latitude}, ${loc.longitude}"; address=detectedLocation; locationMessage="Current location detected" } else locationMessage="Location unavailable. Turn on GPS and try again." } catch(e:Exception){locationMessage="Could not detect location. Enter address manually."} } else locationMessage="Location permission denied. Enter address manually."
+ }
  var orderHistory by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("orders","[]")); (0 until a.length()).map { i -> val o=a.getJSONObject(i); o.optInt("total") to o.optString("description") } }.getOrDefault(emptyList()))}
  var lastOrder by remember{mutableStateOf(false)}
  var fulfillment by remember{mutableStateOf("Delivery")}
@@ -92,21 +106,25 @@ class MainActivity:ComponentActivity(){
    orderHistory.forEach { o -> savedOrders.put(JSONObject().put("total",o.first).put("description",o.second)) }
    prefs.edit().putString("cart",savedCart.toString()).putString("orders",savedOrders.toString())
      .putString("customer_name",name).putString("customer_phone",phone)
-     .putString("customer_address",address).putString("food_preferences",preferences).apply()
+     .putString("customer_address",address).putString("detected_location",detectedLocation).putString("delivery_distance_km",deliveryDistanceKm.toString()).putString("food_preferences",preferences).apply()
  }
  val count=cart.values.sumOf{it.qty}
  val total=cart.values.sumOf{it.qty*it.price}
+ val deliveryFee=if(fulfillment!="Delivery"||deliveryDistanceKm<=0.0) 0 else (kotlin.math.ceil(kotlin.math.min(deliveryDistanceKm,5.0)*8.0)+kotlin.math.ceil(kotlin.math.max(deliveryDistanceKm-5.0,0.0)*10.0)).toInt()
+ val packagingFee=if(cart.isEmpty()) 0 else 10
+ val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+(if(fulfillment=="Delivery") packagingFee else 0)
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
+ BackHandler(enabled=selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
  Scaffold(containerColor=Cream,topBar={
  TopAppBar(title={Column{
  Text("Laddu Bhai Food Point",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
- Text("DELIVERING TO  ·  YOUR LOCATION",fontSize=10.sp,color=Muted,letterSpacing=.6.sp)
+ Text("DELIVERING TO · ${if(detectedLocation.isNotBlank()) detectedLocation.take(36) else "SET YOUR LOCATION"}",fontSize=10.sp,color=Muted,letterSpacing=.2.sp,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.clickable { if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED) { try { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager; val loc=listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER).mapNotNull { p -> runCatching { lm.getLastKnownLocation(p) }.getOrNull() }.maxByOrNull { it.time }; if(loc!=null){ detectedLocation=runCatching { Geocoder(context,Locale.getDefault()).getFromLocation(loc.latitude,loc.longitude,1)?.firstOrNull()?.getAddressLine(0) }.getOrNull() ?: "${loc.latitude}, ${loc.longitude}"; address=detectedLocation; locationMessage="Current location detected" } else locationMessage="Turn on GPS and try again" } catch(e:Exception){locationMessage="Could not detect location"} } else locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) } }
  }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
  },bottomBar={
  if(!cartOpen&&!checkout&&!lastOrder&&selectedFood==null) Column {
  if(count>0 && (tab=="Home"||tab=="Menu")) Surface(color=Color(0xFF168044),shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp).clickable{cartOpen=true}) {
   Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=12.dp),verticalAlignment=Alignment.CenterVertically){
-   Column(Modifier.weight(1f)){Text("$count item${if(count==1) "" else "s"}  |  ₹$total",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color.White);Text("Extra charges may apply",fontSize=10.sp,color=Color.White)}
+   Column(Modifier.weight(1f)){Text("$count item${if(count==1) "" else "s"}  |  ₹$total",fontSize=14.sp,fontWeight=FontWeight.Bold,color=Color.White);Text("Food subtotal · delivery & packaging shown at checkout",fontSize=10.sp,color=Color.White)}
    Text("View cart  →",fontSize=14.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
   }
  }
@@ -132,7 +150,7 @@ class MainActivity:ComponentActivity(){
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Cream,CircleShape),contentAlignment=Alignment.Center){Text("2",fontWeight=FontWeight.Bold,color=Muted)};Spacer(Modifier.width(10.dp));Column{Text("Preparing your food",fontWeight=FontWeight.Bold);Text("Status updates are not live in this demo",fontSize=12.sp,color=Muted)}}
  Text("$fulfillment · $paymentMethod",fontSize=12.sp,color=Muted)
  }}
- Spacer(Modifier.height(12.dp));Text("Total · ₹$total",fontSize=22.sp,fontWeight=FontWeight.Bold)
+ Spacer(Modifier.height(12.dp));Text("Total · ₹$grandTotal",fontSize=22.sp,fontWeight=FontWeight.Bold)
  Text("Demo only: this order has not been sent to the restaurant. No live tracking or payment is connected.",fontSize=12.sp,color=Muted)
  Spacer(Modifier.height(18.dp));Button(onClick={cart=emptyMap();lastOrder=false;tab="Home"},colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Continue exploring",color=Gold)}
  }
@@ -141,16 +159,18 @@ class MainActivity:ComponentActivity(){
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(42.dp).background(Color(0xFFE4F1E8),RoundedCornerShape(13.dp)),contentAlignment=Alignment.Center){Text("02",fontWeight=FontWeight.Black,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("CHECKOUT",fontSize=10.sp,color=Color(0xFF18794E),fontWeight=FontWeight.Bold,letterSpacing=1.5.sp);Text("Complete your order",fontSize=24.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}}
  Text("Almost there!",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
  Text("Where should we bring your favourites?",color=Muted)
+ Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().clickable { if(ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(context,Manifest.permission.ACCESS_COARSE_LOCATION)==PackageManager.PERMISSION_GRANTED) { try { val lm=context.getSystemService(android.content.Context.LOCATION_SERVICE) as LocationManager; val loc=listOf(LocationManager.GPS_PROVIDER,LocationManager.NETWORK_PROVIDER).mapNotNull { p -> runCatching { lm.getLastKnownLocation(p) }.getOrNull() }.maxByOrNull { it.time }; if(loc!=null){ detectedLocation=runCatching { Geocoder(context,Locale.getDefault()).getFromLocation(loc.latitude,loc.longitude,1)?.firstOrNull()?.getAddressLine(0) }.getOrNull() ?: "${loc.latitude}, ${loc.longitude}"; address=detectedLocation; locationMessage="Current location detected" } else locationMessage="Turn on GPS and try again" } catch(e:Exception){locationMessage="Could not detect location"} } else locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION)) }) { Row(Modifier.fillMaxWidth().padding(14.dp),verticalAlignment=Alignment.CenterVertically){Text("⌖",fontSize=24.sp,color=Gold);Spacer(Modifier.width(10.dp));Column(Modifier.weight(1f)){Text(if(detectedLocation.isBlank()) "Use my current location" else "Saved delivery location",fontWeight=FontWeight.Bold,color=Ink);Text(if(detectedLocation.isBlank()) "Detect GPS location" else detectedLocation,fontSize=12.sp,color=Muted)};Text("Detect",fontWeight=FontWeight.Bold,color=Ink)} }
+ if(locationMessage.isNotBlank()) Text(locationMessage,fontSize=12.sp,color=Muted)
  OutlinedTextField(name,{name=it},label={Text("Full name")},singleLine=true,modifier=Modifier.fillMaxWidth())
  OutlinedTextField(phone,{phone=it.filter{c->c.isDigit()}.take(10)},label={Text("Mobile number")},singleLine=true,modifier=Modifier.fillMaxWidth())
  Text("FULFILMENT",fontSize=11.sp,color=Muted,fontWeight=FontWeight.Bold,letterSpacing=1.sp)
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Delivery","Pickup").forEach{choice->Surface(color=if(fulfillment==choice)Color(0xFF18794E) else Color.White,shape=RoundedCornerShape(13.dp),modifier=Modifier.weight(1f).clickable{fulfillment=choice}){Text(choice,modifier=Modifier.padding(14.dp),color=if(fulfillment==choice)Color.White else Ink,fontWeight=FontWeight.Bold)}}}
- if(fulfillment=="Delivery")OutlinedTextField(address,{address=it},label={Text("Delivery address")},modifier=Modifier.fillMaxWidth(),minLines=3)
+ if(fulfillment=="Delivery") { OutlinedTextField(address,{address=it},label={Text("Delivery address")},modifier=Modifier.fillMaxWidth(),minLines=3); OutlinedTextField(value=if(deliveryDistanceKm==0.0) "" else deliveryDistanceKm.toString(),onValueChange={deliveryDistanceKm=it.toDoubleOrNull()?.coerceIn(0.0,100.0)?:0.0},label={Text("Delivery distance from restaurant (km)")},placeholder={Text("Distance needed to calculate delivery fee")},singleLine=true,modifier=Modifier.fillMaxWidth()); Text("Delivery: ₹8/km for the first 5 km, then ₹10/km after 5 km.",fontSize=12.sp,color=Muted) }
  else Text("Collect your order from Laddu Bhai Food Point.",color=Muted,fontSize=13.sp)
  Text("PAYMENT",fontSize=11.sp,color=Muted,fontWeight=FontWeight.Bold,letterSpacing=1.sp)
  listOf("Pay at restaurant","Cash on delivery","UPI (confirm with restaurant)").forEach{choice->Surface(color=Color.White,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().clickable{paymentMethod=choice}){Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){RadioButton(selected=paymentMethod==choice,onClick={paymentMethod=choice},colors=RadioButtonDefaults.colors(selectedColor=Color(0xFF18794E)));Spacer(Modifier.width(6.dp));Text(choice,fontSize=14.sp,color=Ink)}}}
  Spacer(Modifier.weight(1f))
- Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Text("Order total",color=Muted);Text("₹$total",fontSize=26.sp,fontWeight=FontWeight.ExtraBold);Text("Delivery fee / taxes",fontSize=12.sp,color=Muted);Text("Shown by restaurant if applicable; not included yet.",fontSize=11.sp,color=Muted);Spacer(Modifier.height(8.dp));cart.values.forEach{line->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("${line.food.name} · ${line.variant} × ${line.qty}",fontSize=12.sp,color=Ink,modifier=Modifier.weight(1f));Text("₹${line.price*line.qty}",fontSize=12.sp,color=Ink)}};Spacer(Modifier.height(10.dp));Text("Restaurant confirms delivery and payment separately.",fontSize=12.sp,color=Muted);Spacer(Modifier.height(10.dp));Button(onClick={orderNumber="LBFP-"+System.currentTimeMillis().toString().takeLast(6);orderHistory=listOf(total to "Order placed · $orderNumber · $fulfillment · $paymentMethod")+orderHistory;checkout=false;cartOpen=false;lastOrder=true},enabled=name.isNotBlank()&&phone.length==10&&(fulfillment=="Pickup"||address.isNotBlank()),modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Place order",color=Gold,fontWeight=FontWeight.Bold)}}}
+ Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(16.dp)){Text("Transparent bill",color=Muted);Text("Food subtotal · ₹$total",fontSize=16.sp,fontWeight=FontWeight.Bold);if(fulfillment=="Delivery"){Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Delivery fee · ${deliveryDistanceKm} km",fontSize=13.sp);Text(if(deliveryDistanceKm>0) "₹$deliveryFee" else "Enter distance",fontSize=13.sp,fontWeight=FontWeight.Bold)};Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Packaging fee",fontSize=13.sp);Text("₹$packagingFee",fontSize=13.sp,fontWeight=FontWeight.Bold)}};Divider();Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Total to pay",fontSize=16.sp,fontWeight=FontWeight.Bold);Text("₹$grandTotal",fontSize=24.sp,fontWeight=FontWeight.ExtraBold)};Text("No platform fee, service fee or food-price markup. Menu prices match dine-in prices.",fontSize=11.sp,color=Muted);Spacer(Modifier.height(8.dp));cart.values.forEach{line->Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("${line.food.name} · ${line.variant} × ${line.qty}",fontSize=12.sp,color=Ink,modifier=Modifier.weight(1f));Text("₹${line.price*line.qty}",fontSize=12.sp,color=Ink)}};Spacer(Modifier.height(10.dp));Text("Restaurant confirms delivery and payment separately.",fontSize=12.sp,color=Muted);Spacer(Modifier.height(10.dp));Button(onClick={orderNumber="LBFP-"+System.currentTimeMillis().toString().takeLast(6);orderHistory=listOf(grandTotal to "Order placed · $orderNumber · $fulfillment · $paymentMethod")+orderHistory;checkout=false;cartOpen=false;lastOrder=true},enabled=name.isNotBlank()&&phone.length==10&&(fulfillment=="Pickup"||(address.isNotBlank()&&deliveryDistanceKm>0.0)),modifier=Modifier.fillMaxWidth(),colors=ButtonDefaults.buttonColors(containerColor=Ink)){Text("Place order",color=Gold,fontWeight=FontWeight.Bold)}}}
  }
  cartOpen->Column(Modifier.padding(padding).fillMaxSize().padding(16.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){TextButton(onClick={cartOpen=false}){Text("← Back")};Text("Your bag",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Ink)}
@@ -344,7 +364,7 @@ private fun HomePage(
             Text("Freshly prepared", fontSize = 11.sp, color = Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (singleQty == 0) {
-                    OutlinedButton(onClick = { onAdd(f, "Single", f.single) }, contentPadding = PaddingValues(horizontal = 13.dp, vertical = 0.dp), modifier = Modifier.height(34.dp), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF168044))) {
+                    OutlinedButton(onClick = { onClick(f) }, contentPadding = PaddingValues(horizontal = 13.dp, vertical = 0.dp), modifier = Modifier.height(34.dp), shape = RoundedCornerShape(8.dp), border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF168044))) {
                         Text("ADD +", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xFF168044))
                     }
                 } else {
