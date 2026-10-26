@@ -148,7 +148,9 @@ class MainActivity:ComponentActivity(){
        runCatching {
          val geocoder = Geocoder(context, Locale.getDefault())
          val destination = if (saved?.latitude != null && saved.longitude != null) {
-           android.location.Address(Locale.getDefault()).apply { latitude = saved.latitude; longitude = saved.longitude }
+           android.location.Address(Locale.getDefault()).apply { latitude = saved.latitude!!; longitude = saved.longitude!! }
+         } else if (address == detectedLocation && currentLat != null && currentLon != null) {
+           android.location.Address(Locale.getDefault()).apply { latitude = currentLat!!; longitude = currentLon!! }
          } else {
            geocoder.getFromLocationName(address, 1)?.firstOrNull()
          }
@@ -197,7 +199,7 @@ class MainActivity:ComponentActivity(){
  }
  val count=cart.values.sumOf{it.qty}
  val total=cart.values.sumOf{it.qty*it.price}
- val deliveryFee=if(fulfillment!="Delivery"||deliveryDistanceKm<=0.0) 0 else (kotlin.math.ceil(kotlin.math.min(deliveryDistanceKm,5.0)*8.0)+kotlin.math.ceil(kotlin.math.max(deliveryDistanceKm-5.0,0.0)*10.0)).toInt()
+ val deliveryFee=if(fulfillment!="Delivery"||deliveryDistanceKm<=0.0) 0 else if(deliveryDistanceKm<1.0) 10 else (kotlin.math.ceil(kotlin.math.min(deliveryDistanceKm,5.0)*8.0)+kotlin.math.ceil(kotlin.math.max(deliveryDistanceKm-5.0,0.0)*10.0)).toInt()
  val packagingFee=if(cart.isEmpty()) 0 else 10
  val grandTotal=total+(if(fulfillment=="Delivery") deliveryFee else 0)+packagingFee
  MaterialTheme(colorScheme=lightColorScheme(primary=Ink,secondary=Gold,background=Cream,surface=Color.White)){
