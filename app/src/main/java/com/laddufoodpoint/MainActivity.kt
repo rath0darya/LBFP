@@ -268,7 +268,7 @@ class MainActivity:ComponentActivity(){
  Text(orderNumber,fontSize=13.sp,fontWeight=FontWeight.Bold,color=Color(0xFFFC8019))
  Text("Your order summary",color=Muted)
  Spacer(Modifier.height(14.dp))
- Surface(color=Color.White,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+ Surface(color=CardColor,shape=RoundedCornerShape(20.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Color(0xFFFFF0E5),CircleShape),contentAlignment=Alignment.Center){Text("1",fontWeight=FontWeight.Bold,color=Color(0xFF18794E))};Spacer(Modifier.width(10.dp));Column{Text("Order received",fontWeight=FontWeight.Bold);Text("Waiting for restaurant confirmation",fontSize=12.sp,color=Muted)}}
  Divider(color=Color(0xFFECEBE5))
  Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.size(36.dp).background(Cream,CircleShape),contentAlignment=Alignment.Center){Text("2",fontWeight=FontWeight.Bold,color=Muted)};Spacer(Modifier.width(10.dp));Column{Text("Preparing your food",fontWeight=FontWeight.Bold);Text("Status updates are not live in this demo",fontSize=12.sp,color=Muted)}}
@@ -548,7 +548,7 @@ private fun HomePage(
                     trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Remove, contentDescription = "Clear search") } },
                     singleLine = true, shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        unfocusedContainerColor = Color.White, focusedContainerColor = Color.White,
+                        unfocusedContainerColor = CardColor, focusedContainerColor = CardColor,
                         unfocusedBorderColor = Color(0xFFE2E2E2), focusedBorderColor = Ink
                     )
                 )
@@ -569,16 +569,15 @@ private fun HomePage(
                         }
                     }
                     Spacer(Modifier.height(18.dp))
-                    Surface(color = Color(0xFF202124), shape = RoundedCornerShape(0.dp), modifier = Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(horizontal = 20.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text("MADE FRESH, SERVED HOT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Gold, letterSpacing = 1.sp)
-                                Spacer(Modifier.height(5.dp))
-                                Text("Your everyday food cravings, sorted.", fontSize = 21.sp, lineHeight = 26.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-                                Spacer(Modifier.height(10.dp))
-                                Text("Rice • Noodles • Chicken • Roti", fontSize = 11.sp, color = Color(0xFFE1E1E1))
-                            }
-                            AsyncImage(model=foodPhoto(menu[4]),contentDescription="Chicken dish",contentScale=ContentScale.Crop,modifier=Modifier.size(94.dp).clip(RoundedCornerShape(14.dp)))
+                    Box(Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.35f).dp.coerceAtMost(320.dp)).clip(RoundedCornerShape(22.dp))) {
+                        AsyncImage(model="https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=1400&auto=format&fit=crop&q=90",contentDescription="Freshly prepared restaurant food",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
+                        Box(Modifier.fillMaxSize().background(Color(0x99000000)))
+                        Column(Modifier.align(Alignment.BottomStart).padding(22.dp)) {
+                            Text("MADE FRESH, SERVED HOT",fontSize=11.sp,fontWeight=FontWeight.Bold,color=Gold,letterSpacing=1.3.sp)
+                            Spacer(Modifier.height(7.dp))
+                            Text("Your everyday food cravings, sorted.",fontSize=27.sp,lineHeight=32.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
+                            Spacer(Modifier.height(8.dp))
+                            Text("Rice • Noodles • Chicken • Roti",fontSize=13.sp,color=Color.White)
                         }
                     }
                 }
