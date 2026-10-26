@@ -251,7 +251,7 @@ class MainActivity:ComponentActivity(){
    Text("View cart  →",fontSize=14.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
   }
  }
- if(!checkout && !cartOpen && !lastOrder) NavigationBar(containerColor=Color.White){
+ if(!checkout && !cartOpen && !lastOrder) NavigationBar(containerColor=CardColor, contentColor=Ink){
  NavigationBarItem(selected=tab=="Home",onClick={tab="Home"},icon={Icon(Icons.Default.Home,null)},label={Text("Home")})
  NavigationBarItem(selected=tab=="Menu",onClick={tab="Menu"},icon={Icon(Icons.Default.MenuBook,null)},label={Text("Menu")})
  NavigationBarItem(selected=tab=="Orders",onClick={tab="Orders"},icon={Icon(Icons.Default.ReceiptLong,null)},label={Text("Orders")})
@@ -527,9 +527,9 @@ private fun HomePage(
             Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(top = 12.dp, bottom = 14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text(if (filterMenu) "LADDU BHAI FOOD POINT" else "GOOD FOOD. GOOD MOOD.", fontSize = 10.sp, color = Muted, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.2.sp)
+                        Text(if (filterMenu) "LADDU BHAI FOOD POINT" else "FRESHLY PREPARED · MADE TO ORDER", fontSize = 10.sp, color = Gold, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.0.sp)
                         Spacer(Modifier.height(5.dp))
-                        Text(if (filterMenu) "Explore menu" else "What are you craving?", fontSize = 27.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
+                        Text(if (filterMenu) "Explore menu" else "What sounds good?", fontSize = 25.sp, lineHeight = 30.sp, fontWeight = FontWeight.ExtraBold, color = Ink)
                         Text("Freshly prepared favourites, made to order", fontSize = 12.sp, color = Muted)
                     }
                     Surface(color = Color(0xFFFFF0E5), shape = RoundedCornerShape(15.dp)) {
@@ -544,7 +544,7 @@ private fun HomePage(
                     value = search, onValueChange = { search = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search for dishes", color = Muted, fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = "Search dishes", tint = Ink) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search dishes", tint = Gold) },
                     trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Remove, contentDescription = "Clear search") } },
                     singleLine = true, shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -556,28 +556,27 @@ private fun HomePage(
         }
         if (!filterMenu && search.isBlank()) {
             item {
-                Column(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        listOf(Triple("Veg", Icons.Default.RiceBowl, "VEG"), Triple("Non-veg", Icons.Default.LocalFireDepartment, "NON-VEG"), Triple("Roti & naan", Icons.Default.BakeryDining, "ROTI")).forEach { (title, categoryIcon, key) ->
-                            Column(Modifier.weight(1f).clickable { onCategory(key) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                                Surface(color = CardColor, shape = CircleShape, modifier = Modifier.size(74.dp)) {
-                                    Box(contentAlignment = Alignment.Center) { Icon(categoryIcon, contentDescription=title, tint=if(key=="VEG") Color(0xFF27834A) else if(key=="ROTI") Gold else Color(0xFFB33A2B), modifier=Modifier.size(34.dp)) }
-                                }
-                                Spacer(Modifier.height(7.dp))
-                                Text(title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Ink, maxLines = 1)
+                Column(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                        listOf(Triple("Rice & biryani", "photo-1512058564366-18510be2db19", "ALL"), Triple("Noodles", "photo-1569718212165-3a8278d5f624", "VEG"), Triple("Chicken", "photo-1603894584373-5ac82b2ae398", "NON-VEG"), Triple("Veg", "photo-1512621776951-a57141f2eefd", "VEG"), Triple("Roti & naan", "photo-1601050690597-df0568f70950", "ROTI")).forEach { (title, photo, key) ->
+                            Column(Modifier.width(76.dp).clickable { onCategory(key) }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AsyncImage(model="https://images.unsplash.com/$photo?w=240&auto=format&fit=crop&q=80", contentDescription=title, contentScale=ContentScale.Crop, modifier=Modifier.size(68.dp).clip(CircleShape))
+                                Text(title, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
-                    Spacer(Modifier.height(18.dp))
-                    Box(Modifier.fillMaxWidth().height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.35f).dp.coerceAtMost(320.dp)).clip(RoundedCornerShape(22.dp))) {
-                        AsyncImage(model="https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=1400&auto=format&fit=crop&q=90",contentDescription="Freshly prepared restaurant food",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
-                        Box(Modifier.fillMaxSize().background(Color(0x99000000)))
-                        Column(Modifier.align(Alignment.BottomStart).padding(22.dp)) {
-                            Text("MADE FRESH, SERVED HOT",fontSize=11.sp,fontWeight=FontWeight.Bold,color=Gold,letterSpacing=1.3.sp)
+                    Spacer(Modifier.height(14.dp))
+                    Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp).height((androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp * 0.27f).dp.coerceIn(190.dp, 250.dp)).clip(RoundedCornerShape(20.dp))) {
+                        AsyncImage(model="https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=1400&auto=format&fit=crop&q=90",contentDescription="Freshly prepared rice and chicken dishes",contentScale=ContentScale.Crop,modifier=Modifier.fillMaxSize())
+                        Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Brush.horizontalGradient(listOf(Color(0xCC171717), Color(0x55171717), Color.Transparent))))
+                        Column(Modifier.align(Alignment.CenterStart).fillMaxWidth(0.78f).padding(start = 20.dp, top = 16.dp, bottom = 16.dp)) {
+                            Text("FRESH FROM OUR KITCHEN",fontSize=10.sp,fontWeight=FontWeight.Bold,color=Color(0xFFFFB36B),letterSpacing=1.2.sp)
                             Spacer(Modifier.height(7.dp))
-                            Text("Your everyday food cravings, sorted.",fontSize=27.sp,lineHeight=32.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
-                            Spacer(Modifier.height(8.dp))
-                            Text("Rice • Noodles • Chicken • Roti",fontSize=13.sp,color=Color.White)
+                            Text("Good food. Made fresh.",fontSize=24.sp,lineHeight=28.sp,fontWeight=FontWeight.ExtraBold,color=Color.White)
+                            Spacer(Modifier.height(6.dp))
+                            Text("Rice • Noodles • Chicken • Roti",fontSize=12.sp,color=Color.White)
+                            Spacer(Modifier.height(12.dp))
+                            Surface(color=Gold,shape=RoundedCornerShape(9.dp),modifier=Modifier.clickable { onMenu() }) { Text("Explore menu  →",modifier=Modifier.padding(horizontal=13.dp,vertical=9.dp),fontSize=12.sp,fontWeight=FontWeight.Bold,color=Color.White) }
                         }
                     }
                 }
