@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -545,7 +544,7 @@ private fun HomePage(
                     value = search, onValueChange = { search = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Search for dishes", color = Muted, fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search dishes", tint = Gold) },
+                    leadingIcon = { Icon(Icons.Default.MenuBook, contentDescription = "Search dishes", tint = Gold) },
                     trailingIcon = { if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Default.Remove, contentDescription = "Clear search") } },
                     singleLine = true, shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
