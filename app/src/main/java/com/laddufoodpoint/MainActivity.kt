@@ -195,7 +195,7 @@ class MainActivity:ComponentActivity(){
  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Packaging fee",color=Muted);Text("₹10",fontWeight=FontWeight.SemiBold,color=Ink)}
  if(fulfillment=="Delivery")Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween){Text("Delivery fee",color=Muted);Text(if(deliveryDistanceKm>0) "₹${deliveryFee}" else "—",fontWeight=FontWeight.SemiBold,color=Ink)}
  Divider(color=Color(0xFFE8E7E0));Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){Text("Total",fontSize=17.sp,fontWeight=FontWeight.Bold,color=Ink);Text("₹${grandTotal}",fontSize=26.sp,fontWeight=FontWeight.ExtraBold,color=Color(0xFF18794E))}
- }}
+ }}}
  item { Surface(color=Color.White,shape=RoundedCornerShape(18.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Delivery Details",fontSize=20.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
  Column(Modifier.fillMaxWidth()){Text("Customer name",fontSize=12.sp,color=Muted);Text(name.ifBlank{"Add your name in Settings"},fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
  Column(Modifier.fillMaxWidth()){Text("Mobile number",fontSize=12.sp,color=Muted);Text(phone.ifBlank{"Add your mobile number in Settings"},fontSize=16.sp,fontWeight=FontWeight.SemiBold,color=Ink)}
