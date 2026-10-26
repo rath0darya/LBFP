@@ -678,11 +678,11 @@ private fun HomePage(
             }
         }
     }
-    Divider(Modifier.padding(horizontal = 18.dp), color = Color(0xFFECECEC))
+    Divider(Modifier.padding(horizontal = 18.dp), color = if(appDarkTheme) Color(0xFF383B42) else Color(0xFFECECEC))
 }
 @Composable private fun PriceOption(f:Food,v:String,p:Int,cart:Map<String,Line>,onAdd:(Food,String,Int)->Unit,onRemove:(Food,String)->Unit,modifier:Modifier){
  val qty=cart[itemKey(f,v)]?.qty?:0
- Surface(modifier=modifier,shape=RoundedCornerShape(15.dp),color=if(qty>0)Color(0xFFFFF2C7) else Color(0xFFF8F7F2),border=androidx.compose.foundation.BorderStroke(1.dp,if(qty>0)Gold else Color(0xFFECE9DF))){
+ Surface(modifier=modifier,shape=RoundedCornerShape(15.dp),color=if(qty>0) if(appDarkTheme) Color(0xFF3A3025) else Color(0xFFFFF2C7) else if(appDarkTheme) CardColor else Color(0xFFF8F7F2),border=androidx.compose.foundation.BorderStroke(1.dp,if(qty>0)Gold else if(appDarkTheme) Color(0xFF383B42) else Color(0xFFECE9DF))){
   Column(Modifier.padding(horizontal=11.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(7.dp)){
    Text(v.uppercase(),fontSize=9.sp,color=Muted,fontWeight=FontWeight.Bold,letterSpacing=.7.sp)
    Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween){
