@@ -134,6 +134,37 @@ class MainActivity:ComponentActivity(){
  var paymentMethod by remember{mutableStateOf("Online")}
  var orderNumber by remember{mutableStateOf("LBFP-0001")}
  var preferences by remember{mutableStateOf(prefs.getString("food_preferences","No onions") ?: "No onions") }
+ LaunchedEffect(address, fulfillment, addressBook) {
+   if (fulfillment != "Delivery" || address.isBlank()) {
+     deliveryDistanceKm = 0.0
+     distanceCalculating = false
+   } else {
+     distanceCalculating = true
+     val saved = addressBook.firstOrNull { it.details == address }
+     val result = withContext(Dispatchers.IO) {
+       runCatching {
+         val geocoder = Geocoder(context, Locale.getDefault())
+         val destination = if (saved?.latitude != null && saved.longitude != null) {
+           android.location.Address(Locale.getDefault()).apply { latitude = saved.latitude; longitude = saved.longitude }
+         } else {
+           geocoder.getFromLocationName(address, 1)?.firstOrNull()
+         }
+         val restaurant = geocoder.getFromLocationName(RESTAURANT_ADDRESS, 1)?.firstOrNull()
+         if (destination == null || restaurant == null) null else {
+           val meters = FloatArray(1)
+           Location.distanceBetween(restaurant.latitude, restaurant.longitude, destination.latitude, destination.longitude, meters)
+           (meters[0] / 1000.0 * 1.25).coerceAtLeast(0.1)
+         }
+       }.getOrNull()
+     }
+     deliveryDistanceKm = result ?: 0.0
+     distanceCalculating = false
+     locationMessage = if (result == null) "Could not calculate distance for this address. Select current location or edit the address." else "Estimated distance calculated automatically."
+   }
+ }
+ LaunchedEffect(name, phone) {
+   if (name.isNotBlank() && phone.matches(Regex("^\\d{10}$"))) profileGateMessage = ""
+ }
  LaunchedEffect(cart,name,phone,address,preferences,orderHistory) {
    val savedCart=JSONArray()
    cart.values.forEach { l -> savedCart.put(JSONObject().put("name",l.food.name).put("variant",l.variant).put("price",l.price).put("qty",l.qty)) }
@@ -141,7 +172,7 @@ class MainActivity:ComponentActivity(){
    orderHistory.forEach { o -> savedOrders.put(JSONObject().put("total",o.first).put("description",o.second)) }
    prefs.edit().putString("cart",savedCart.toString()).putString("orders",savedOrders.toString())
      .putString("customer_name",name).putString("customer_phone",phone)
-     .putString("customer_address",address).putString("detected_location",detectedLocation).putString("delivery_distance_km",deliveryDistanceKm.toString()).putString("food_preferences",preferences).putString("address_book",JSONArray().apply { addressBook.forEach { a -> put(JSONObject().put("label",a.label).put("details",a.details).put("landmark",a.landmark).put("addressType",a.addressType).put("lat",a.latitude).put("lon",a.longitude)) } }.toString()).apply()
+     .putString("customer_address",address).putString("detected_location",detectedLocation).putString("food_preferences",preferences).putString("address_book",JSONArray().apply { addressBook.forEach { a -> put(JSONObject().put("label",a.label).put("details",a.details).put("landmark",a.landmark).put("addressType",a.addressType).put("lat",a.latitude).put("lon",a.longitude)) } }.toString()).apply()
  }
  val count=cart.values.sumOf{it.qty}
  val total=cart.values.sumOf{it.qty*it.price}
@@ -232,7 +263,7 @@ class MainActivity:ComponentActivity(){
                      if (fulfillment == "Delivery") {
                          Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                              Text("Delivery fee", color = Muted)
-                             Text(if (deliveryDistanceKm > 0.0) "₹$deliveryFee" else "Enter distance", fontWeight = FontWeight.SemiBold, color = Ink)
+                             Text(if (distanceCalculating) "Calculating…" else if (deliveryDistanceKm > 0.0) "₹$deliveryFee · ${"%.1f".format(Locale.US, deliveryDistanceKm)} km" else "Calculating address…", fontWeight = FontWeight.SemiBold, color = Ink)
                          }
                      }
                      Divider(color = Color(0xFFE8E7E0))
@@ -279,16 +310,11 @@ class MainActivity:ComponentActivity(){
                              }
                          }
                          if (locationMessage.isNotBlank()) Text(locationMessage, fontSize = 12.sp, color = Muted)
-                         OutlinedTextField(
-                             value = if (deliveryDistanceKm == 0.0) "" else deliveryDistanceKm.toString(),
-                             onValueChange = { deliveryDistanceKm = it.toDoubleOrNull()?.coerceIn(0.0, 100.0) ?: 0.0 },
-                             label = { Text("Delivery distance (km)") },
-                             placeholder = { Text("Enter road distance from Google Maps") },
-                             singleLine = true,
-                             modifier = Modifier.fillMaxWidth(),
-                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal)
-                         )
-                         Text("Confirm the road distance from the restaurant route before placing the order.", fontSize = 11.sp, color = Muted)
+                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                             Text("Estimated delivery distance", fontSize = 13.sp, color = Muted)
+                             Text(if (distanceCalculating) "Calculating…" else if (deliveryDistanceKm > 0.0) "${"%.1f".format(Locale.US, deliveryDistanceKm)} km" else "Unavailable", fontWeight = FontWeight.SemiBold, color = Ink)
+                         }
+                         Text("Distance is estimated automatically from the restaurant and delivery address coordinates.", fontSize = 11.sp, color = Muted)
                      }
                  }
              }
@@ -351,7 +377,7 @@ class MainActivity:ComponentActivity(){
                      cartOpen = false
                      lastOrder = true
                  },
-                 enabled = name.isNotBlank() && phone.length == 10 && cart.isNotEmpty() && (fulfillment == "Pickup" || (address.isNotBlank() && deliveryDistanceKm > 0.0)),
+                 enabled = name.isNotBlank() && phone.matches(Regex("^\\d{10}$")) && cart.isNotEmpty() && !distanceCalculating && (fulfillment == "Pickup" || (address.isNotBlank() && deliveryDistanceKm > 0.0)),
                  modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                  colors = ButtonDefaults.buttonColors(containerColor = Ink)
              ) {
@@ -378,7 +404,7 @@ class MainActivity:ComponentActivity(){
  }
  tab=="Help"->Column(Modifier.padding(padding).fillMaxSize().padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){Text("Help & support",fontSize=28.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Quick answers for your order",color=Muted);listOf("Where is my order?","Orders are saved on this device only. Live restaurant confirmation and tracking are not connected.","How do I change an item?","Open the cart and use +, −, or edit the quantity field. You can also return to the menu to change serving size.","How does payment work?","Payment is not processed in this demo. Confirm payment options directly with the restaurant.","Need help with a bulk order?","Please contact Laddu Bhai Food Point directly; contact details are not configured in this app.").chunked(2).forEach{pair->Surface(color=Color.White,shape=RoundedCornerShape(14.dp)){Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(pair[0],fontWeight=FontWeight.Bold,color=Ink);Text(pair[1],fontSize=13.sp,color=Muted)}}};Button(onClick={tab="Profile"},modifier=Modifier.fillMaxWidth()){Text("Back to profile")}}
  tab=="Profile"->Column(Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)){
- Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted)
+ Text("Settings",fontSize=29.sp,fontWeight=FontWeight.ExtraBold,color=Ink);Text("Your account, saved places and app preferences",color=Muted);if(profileGateMessage.isNotBlank())Text(profileGateMessage,fontSize=13.sp,color=Color(0xFFB3261E),fontWeight=FontWeight.SemiBold);
  Surface(color=Ink,shape=RoundedCornerShape(22.dp)){Column(Modifier.fillMaxWidth().padding(20.dp)){Text("LADDU BHAI FOOD POINT",fontSize=11.sp,color=Gold,fontWeight=FontWeight.Bold);Text(if(name.isBlank()) "Your profile" else name,fontSize=24.sp,color=Color.White,fontWeight=FontWeight.ExtraBold);Text(if(phone.isBlank()) "Add your mobile number below" else phone,color=Color(0xFFE0EAE3),fontSize=13.sp)}}
  Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Personal details",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink);Spacer(Modifier.weight(1f));TextButton(onClick={editProfile=!editProfile}){Text(if(editProfile)"Done editing" else "Edit profile")}}
  if(editProfile){OutlinedTextField(name,{name=it},label={Text("Full name")},modifier=Modifier.fillMaxWidth(),singleLine=true);OutlinedTextField(phone,{phone=it.filter{ch->ch.isDigit()}.take(10)},label={Text("Mobile number")},modifier=Modifier.fillMaxWidth(),singleLine=true)}else{Surface(color=Color.White,shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text(name.ifBlank{"Name not added"},fontWeight=FontWeight.SemiBold,color=Ink);Text(phone.ifBlank{"Mobile number not added"},fontSize=13.sp,color=Muted)}}}
