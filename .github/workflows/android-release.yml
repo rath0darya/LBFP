@@ -46,10 +46,33 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          cat > release-notes.md <<'NOTES'
+          # Laddu Bhai Food Point — Android Customer App
+
+          **Build:** 1.0.${{ github.run_number }}  
+          **Package:** `com.laddufoodpoint`  
+          **Branch:** `main`  
+          **Commit:** `${{ github.sha }}`
+
+          ## Included
+          - Food-first home screen with compact search, photo-led categories and promotional hero
+          - Full menu, item images, serving options and cart quantity controls
+          - Delivery/pickup checkout, saved customer details and order history
+          - Optional free-text food preference saved with the current order
+          - App-wide dark theme for backgrounds, cards, text fields, navigation and system bars
+          - Emerald-and-gold launcher identity
+
+          ## Downloads
+          - `LBFP-Customer.apk` — signed Android release APK
+          - `SHA256SUMS.txt` — SHA-256 checksum for integrity verification
+
+          ## Integration notes
+          Orders are stored locally on this device. Live restaurant dispatch, tracking and payment gateway integration are not connected. Delivery fee estimates require a resolvable address and routing service.
+          NOTES
           if gh release view latest >/dev/null 2>&1; then
-            gh release edit latest --title "LBFP Customer App 1.0.${{ github.run_number }}" --notes "## Laddu Bhai Food Point — Android Customer App\n\n**Build:** 1.0.${{ github.run_number }}  \n**Package:** `com.laddufoodpoint`  \n**Branch:** `main`  \n**Commit:** `${{ github.sha }}`\n\n### What’s included\n- Redesigned food-first home screen with compact search, photo-led categories and a promotional food banner\n- Popular dishes and full menu with item-specific imagery, serving choices and cart quantity controls\n- Cart, delivery/pickup checkout, saved customer details and order history\n- Automatic road-distance lookup for delivery fee estimates\n- System, light and dark appearance settings\n- Android system-bar and gesture-navigation insets\n\n### Downloads\n- `LBFP-Customer.apk` — signed Android release APK\n- `SHA256SUMS.txt` — SHA-256 checksum for integrity verification\n\n### Important\nOrders are stored locally on the device. Live restaurant dispatch, tracking and payment gateway integration are not connected in this build. Delivery fee calculation requires a resolvable address and routing service."
+            gh release edit latest --title "Laddu Bhai Customer App 1.0.${{ github.run_number }}" --notes-file release-notes.md
           else
-            gh release create latest --title "LBFP Customer App 1.0.${{ github.run_number }}" --notes "## Laddu Bhai Food Point — Android Customer App\n\n**Build:** 1.0.${{ github.run_number }}  \n**Package:** `com.laddufoodpoint`  \n**Branch:** `main`  \n**Commit:** `${{ github.sha }}`\n\n### What’s included\n- Redesigned food-first home screen with compact search, photo-led categories and a promotional food banner\n- Popular dishes and full menu with item-specific imagery, serving choices and cart quantity controls\n- Cart, delivery/pickup checkout, saved customer details and order history\n- Automatic road-distance lookup for delivery fee estimates\n- System, light and dark appearance settings\n- Android system-bar and gesture-navigation insets\n\n### Downloads\n- `LBFP-Customer.apk` — signed Android release APK\n- `SHA256SUMS.txt` — SHA-256 checksum for integrity verification\n\n### Important\nOrders are stored locally on the device. Live restaurant dispatch, tracking and payment gateway integration are not connected in this build. Delivery fee calculation requires a resolvable address and routing service."
+            gh release create latest --title "Laddu Bhai Customer App 1.0.${{ github.run_number }}" --notes-file release-notes.md
           fi
           gh release upload latest release/LBFP-Customer.apk release/SHA256SUMS.txt --clobber
       - name: Update source archives to this commit
