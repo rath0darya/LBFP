@@ -67,10 +67,11 @@ private val Gold=Color(0xFFFC8019)
 private val Cream get() = if(appDarkTheme) Color(0xFF101114) else Color(0xFFFFFFFF)
 private val Muted get() = if(appDarkTheme) Color(0xFFB0B3BA) else Color(0xFF777B82)
 private val CardColor get() = if(appDarkTheme) Color(0xFF1B1D22) else Color.White
-private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null)
+private data class Food(val name:String,val category:String,val single:Int,val plate:Int?=null,val singleId:Int?=null,val plateId:Int?=null)
 private data class Line(val food:Food,val variant:String,val price:Int,val qty:Int)
 private data class SavedAddress(val label:String,val details:String,val landmark:String="",val addressType:String="Other",val latitude:Double?=null,val longitude:Double?=null)
 private data class OrderRecord(val id:String,val total:Int,val description:String,val customerName:String,val phone:String,val address:String,val fulfillment:String,val paymentMethod:String,val itemsJson:String,val itemTotal:Int,val deliveryFee:Int,val packagingFee:Int,val distanceKm:Double,val preferences:String,val status:String,val createdAt:Long)
+private const val CUSTOMER_API_BASE = "https://homeconnect.freedev.app/api/customer/"
 private const val RESTAURANT_MAP_URL = "https://maps.app.goo.gl/hc9ea46RRy5WBW9t6?g_st=ac"
 private const val RESTAURANT_ADDRESS = "12-11-692, Warasiguda X Road, Secunderabad, Padmarao Nagar, Hyderabad"
 private val menu=listOf(
@@ -85,6 +86,10 @@ private val menu=listOf(
  Food("Tandoori Roti","ROTI",13),Food("Butter Naan","ROTI",30)
 )
 private fun itemKey(f:Food,v:String)=f.name+"|"+v
+private suspend fun customerApi(path:String,payload:JSONObject?=null):JSONObject=withContext(Dispatchers.IO){
+ val c=(URL(CUSTOMER_API_BASE+path).openConnection() as HttpURLConnection).apply{requestMethod=if(payload==null)"GET" else "POST";connectTimeout=12000;readTimeout=18000;setRequestProperty("Accept","application/json");if(payload!=null){doOutput=true;setRequestProperty("Content-Type","application/json; charset=utf-8")}}
+ try{if(payload!=null)c.outputStream.use{it.write(payload.toString().toByteArray(Charsets.UTF_8))};val code=c.responseCode;val stream=if(code in 200..299)c.inputStream else c.errorStream;val j=JSONObject(stream?.bufferedReader()?.use{it.readText()}?:"{}");if(code !in 200..299||!j.optBoolean("ok",false))throw IllegalStateException(j.optString("message","Restaurant server unavailable."));j}finally{c.disconnect()}
+}
 private fun foodPhoto(f:Food):String {
  val id = when(f.name) {
   "Egg Fried Rice" -> "photo-1603133872878-684f208fb84b"
@@ -124,10 +129,14 @@ class MainActivity:ComponentActivity(){
  appDarkTheme=darkMode
  SideEffect { val activity=context as ComponentActivity; val bars=WindowCompat.getInsetsController(activity.window,activity.window.decorView); bars.isAppearanceLightStatusBars=!darkMode; bars.isAppearanceLightNavigationBars=!darkMode; activity.window.statusBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE; activity.window.navigationBarColor=if(darkMode) android.graphics.Color.rgb(16,17,20) else android.graphics.Color.WHITE }
  var tab by remember{mutableStateOf("Home")}
+ var menuItems by remember { mutableStateOf(menu) }
+ var orderSubmitting by remember { mutableStateOf(false) }
+ var orderSubmitMessage by remember { mutableStateOf("") }
+ val scope = rememberCoroutineScope()
  var orderFilter by remember{mutableStateOf("All")}
  var selectedFood by remember{mutableStateOf<Food?>(null)}
  var category by remember{mutableStateOf("ALL")}
- var cart by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("cart","[]")); buildMap<String,Line> { for(i in 0 until a.length()){ val o=a.getJSONObject(i); val f=menu.firstOrNull { it.name==o.optString("name") } ?: continue; val v=o.optString("variant"); val p=o.optInt("price"); val q=o.optInt("qty"); if(q>0 && p>0) put(itemKey(f,v),Line(f,v,p,q)) } } }.getOrDefault(emptyMap()))}
+ var cart by remember{mutableStateOf(runCatching { val a=JSONArray(prefs.getString("cart","[]")); buildMap<String,Line> { for(i in 0 until a.length()){ val o=a.getJSONObject(i); val f=menuItems.firstOrNull { it.name==o.optString("name") } ?: continue; val v=o.optString("variant"); val p=o.optInt("price"); val q=o.optInt("qty"); if(q>0 && p>0) put(itemKey(f,v),Line(f,v,p,q)) } } }.getOrDefault(emptyMap()))}
  var cartOpen by remember{mutableStateOf(false)}
  var checkout by remember{mutableStateOf(false)}
  var name by remember{mutableStateOf(prefs.getString("customer_name","") ?: "")}
@@ -217,6 +226,15 @@ class MainActivity:ComponentActivity(){
      distanceCalculating = false
      locationMessage = if (result == null) "Unable to calculate a driving route for this address. Check the saved address and try again." else "Driving distance calculated automatically."
    }
+ }
+ LaunchedEffect(Unit){
+ try{
+  val rows=customerApi("menu.php").optJSONArray("items")?:JSONArray()
+  val grouped=(0 until rows.length()).map{rows.optJSONObject(it)}.filterNotNull().groupBy{it.optString("name")}
+  val refreshed=menu.map{food->val rs=grouped[food.name].orEmpty();val one=rs.firstOrNull{it.optString("variant","Single")=="Single"};val plate=rs.firstOrNull{it.optString("variant")=="Plate"};food.copy(single=one?.optDouble("price",food.single.toDouble())?.toInt()?:food.single,plate=if(food.plate==null&&plate==null)null else plate?.optDouble("price",food.plate?.toDouble()?:food.single.toDouble())?.toInt()?:food.plate,singleId=one?.optInt("id")?.takeIf{it>0},plateId=plate?.optInt("id")?.takeIf{it>0})}
+  menuItems=refreshed
+  cart=cart.mapNotNull{(_,line)->val food=refreshed.firstOrNull{it.name==line.food.name}?:return@mapNotNull null;val price=if(line.variant=="Plate")food.plate else food.single;if(price==null)null else itemKey(food,line.variant) to line.copy(food=food,price=price)}.toMap()
+ }catch(e:Exception){orderSubmitMessage="Live menu sync failed: "+(e.message?:"server unavailable")}
  }
  LaunchedEffect(name, phone) {
    if (name.isNotBlank() && phone.matches(Regex("^\\d{10}$"))) profileGateMessage = ""
@@ -431,24 +449,25 @@ class MainActivity:ComponentActivity(){
              }
              Button(
                  onClick = {
-                     val datePrefix = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("ddMMyy", Locale.US))
-                     val dailySequence = ((orderHistory.mapNotNull { order -> order.id.takeIf { id -> id.matches(Regex("[0-9]{8,}.*")) } }.filter { it.take(6) == datePrefix }.maxOfOrNull { it.drop(6).takeWhile { ch -> ch.isDigit() }.toIntOrNull() ?: 0 }) ?: 0) + 1
-                     val typeCode = when { fulfillment == "Delivery" && paymentMethod == "Online" -> "DO"; fulfillment == "Delivery" -> "DC"; paymentMethod == "Online" -> "PO"; else -> "PC" }
-                     val secureRandom = java.security.SecureRandom()
-                     var generatedId: String
-                     do { generatedId = datePrefix + dailySequence.toString().padStart(2, '0') + typeCode + (1000 + secureRandom.nextInt(9000)).toString() } while (orderHistory.any { it.id == generatedId })
-                     orderNumber = generatedId
-                     val orderItems = JSONArray().apply { cart.values.forEach { line -> put(JSONObject().put("name",line.food.name).put("variant",line.variant).put("price",line.price).put("qty",line.qty).put("lineTotal",line.price*line.qty)) } }.toString()
-                     orderHistory = listOf(OrderRecord(generatedId,grandTotal,"Order placed · " + generatedId,name,phone,address,fulfillment,paymentMethod,orderItems,total,if(fulfillment=="Delivery") deliveryFee else 0,packagingFee,deliveryDistanceKm,preferences,"Order received",System.currentTimeMillis())) + orderHistory + orderHistory
-                     checkout = false
-                     cartOpen = false
-                     lastOrder = true
+                   if(!orderSubmitting){orderSubmitting=true;orderSubmitMessage="";scope.launch{
+                    try{
+                     val items=JSONArray()
+                     cart.values.forEach{line->val id=if(line.variant=="Plate")line.food.plateId else line.food.singleId;if(id==null||id<=0)throw IllegalStateException("Live menu is not ready. Run the database integration migration.");items.put(JSONObject().put("menu_item_id",id).put("quantity",line.qty))}
+                     val payload=JSONObject().put("name",name).put("phone",phone).put("email","").put("address",address).put("preferences",preferences).put("fulfillment",fulfillment).put("payment_method",if(paymentMethod=="Online")"Online" else "At Restaurant").put("distance_km",if(fulfillment=="Delivery")deliveryDistanceKm else 0.0).put("items",items)
+                     val result=customerApi("orders.php",payload);val o=result.optJSONObject("order")?:throw IllegalStateException("Incomplete order response.")
+                     val id=o.optString("order_number");val t=kotlin.math.round(o.optDouble("total",grandTotal.toDouble())).toInt();val sub=kotlin.math.round(o.optDouble("subtotal",total.toDouble())).toInt();val df=kotlin.math.round(o.optDouble("delivery_fee",deliveryFee.toDouble())).toInt();val pf=kotlin.math.round(o.optDouble("packaging_fee",packagingFee.toDouble())).toInt()
+                     orderNumber=id;val orderItems=JSONArray().apply{cart.values.forEach{line->put(JSONObject().put("name",line.food.name).put("variant",line.variant).put("price",line.price).put("qty",line.qty).put("lineTotal",line.price*line.qty))}}.toString()
+                     orderHistory=listOf(OrderRecord(id,t,"Order placed · "+id,name,phone,address,fulfillment,paymentMethod,orderItems,sub,df,pf,deliveryDistanceKm,preferences,o.optString("status","Received"),System.currentTimeMillis()))+orderHistory
+                     cart=emptyMap();checkout=false;cartOpen=false;lastOrder=true
+                    }catch(e:Exception){orderSubmitMessage=e.message?:"Could not place order."}finally{orderSubmitting=false}
+                   }}
                  },
-                 enabled = name.isNotBlank() && phone.matches(Regex("^\\d{10}$")) && cart.isNotEmpty() && !distanceCalculating && (fulfillment == "Pickup" || (address.isNotBlank() && deliveryDistanceKm > 0.0)),
+                 enabled = !orderSubmitting && name.isNotBlank() && phone.matches(Regex("^\\d{10}$")) && cart.isNotEmpty() && !distanceCalculating && (fulfillment == "Pickup" || (address.isNotBlank() && deliveryDistanceKm > 0.0)),
                  modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                  colors = ButtonDefaults.buttonColors(containerColor = Ink)
              ) {
-                 Text("Place order · ₹$grandTotal", color = Gold, fontWeight = FontWeight.Bold)
+                 if(orderSubmitMessage.isNotBlank()) Text(orderSubmitMessage,fontSize=12.sp,color=Color(0xFFB33A2B))
+                 Text(if(orderSubmitting)"Sending order…" else "Place order · ₹$grandTotal", color = Gold, fontWeight = FontWeight.Bold)
              }
          }
      }
@@ -516,7 +535,7 @@ private fun HomePage(
     var search by remember { mutableStateOf("") }
     
     val categories = listOf("ALL", "NON-VEG", "VEG", "ROTI")
-    val filtered = menu.filter { f ->
+    val filtered = menuItems.filter { f ->
         (category == "ALL" || f.category == category) &&
         
         (search.isBlank() || f.name.contains(search.trim(), ignoreCase = true))
