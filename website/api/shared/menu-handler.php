@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1);require_once __DIR__.'/bootstrap.php';method('GET');try{$q=db()->query('SELECT id,name,category,description,price,emoji FROM menu_items WHERE is_available=1 ORDER BY sort_order,id');reply(200,['ok'=>true,'items'=>$q->fetchAll()]);}catch(Throwable $e){error_log('LBFP menu error: '.$e->getMessage());reply(503,['ok'=>false,'message'=>'Menu temporarily unavailable.']);}

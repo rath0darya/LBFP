@@ -34,7 +34,6 @@ jobs:
           keytool -list -keystore "$RUNNER_TEMP/lbfp/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
       - name: Prepare exact app icon and in-app logo
         run: |
-          python3 -m pip install --user Pillow
           python3 - <<'PY'
           from pathlib import Path
           from PIL import Image
