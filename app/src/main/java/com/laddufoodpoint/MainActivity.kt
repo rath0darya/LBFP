@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import org.json.JSONArray
 import org.json.JSONObject
 import androidx.compose.ui.text.font.FontWeight
@@ -238,10 +239,11 @@ class MainActivity:ComponentActivity(){
  if(showPermissionIntro) AlertDialog(onDismissRequest={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()},title={Text("A better ordering experience")},text={Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Text("Location: shows your current address and saved delivery places, and helps calculate distance from the restaurant.");Text("Notifications: can show order and service updates when those features are available. You can still use the app if you decline.")}},confirmButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply();locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}){Text("Continue")}},dismissButton={TextButton(onClick={showPermissionIntro=false;prefs.edit().putBoolean("permission_intro_seen",true).apply()}){Text("Not now")}})
  BackHandler(enabled=selectedOrder!=null||selectedFood!=null||cartOpen||checkout||lastOrder||tab!="Home") { when { selectedOrder!=null -> selectedOrder=null; selectedFood!=null -> selectedFood=null; checkout -> { checkout=false; cartOpen=true }; cartOpen -> cartOpen=false; lastOrder -> { lastOrder=false; tab="Home" }; tab!="Home" -> tab="Home" } }
  Scaffold(containerColor=Cream,topBar={
- TopAppBar(title={Column{
- Text("Laddu Bhai Food Point",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
+ TopAppBar(title={Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)){
+ androidx.compose.foundation.Image(painter=painterResource(id=R.drawable.app_logo),contentDescription="Laddu Bhai Food Point logo",modifier=Modifier.size(42.dp).clip(RoundedCornerShape(10.dp)),contentScale=ContentScale.Crop)
+ Column { Text("Laddu Bhai Food Point",fontSize=18.sp,fontWeight=FontWeight.ExtraBold,color=Ink)
   Text(if(detectedLocation.isNotBlank()) "⌖  ${detectedLocation.take(48)}" else "⌖  Tap to detect your current location",fontSize=10.sp,color=Muted,letterSpacing=.2.sp,maxLines=1,overflow=TextOverflow.Ellipsis,modifier=Modifier.clickable { showLocationPicker=true })
- }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
+ } }},actions={IconButton(onClick={cartOpen=true}){BadgedBox(badge={if(count>0)Badge{Text("$count")}}){Icon(Icons.Default.ShoppingBag,contentDescription="Cart",tint=Ink)}}},colors=TopAppBarDefaults.topAppBarColors(containerColor=Cream))
  },bottomBar={
  if(!cartOpen&&!checkout&&!lastOrder&&selectedFood==null) Column {
  if(count>0 && (tab=="Home"||tab=="Menu")) Surface(color=Color(0xFF168044),shape=RoundedCornerShape(14.dp),modifier=Modifier.fillMaxWidth().padding(horizontal=12.dp,vertical=6.dp).clickable{cartOpen=true}) {
