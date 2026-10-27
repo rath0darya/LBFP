@@ -23,3 +23,8 @@
 ## Notes
 
 The website saves order prices server-side from the menu price at order time, so the owner dashboard shows the same saved total returned to the customer. Current checkout has no delivery fee, so the displayed delivery fee is ₹0. Online payment is a preference only; no payment gateway is integrated. Customer GPS is optional and only captured when the customer taps the location button and grants browser permission. Customer order lookup by phone alone is not strong identity verification.
+
+
+## Android customer app integration
+
+The Android app uses `/api/customer/menu.php` for live menu prices and `/api/customer/orders.php` for placing orders. Orders share the MySQL tables used by `/owner/`. Run `database/customer-app-integration.sql` once in phpMyAdmin before testing. It adds serving variants and fee columns and seeds the app menu. The owner menu editor supports editing each variant price.
