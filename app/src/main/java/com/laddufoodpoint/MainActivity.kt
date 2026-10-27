@@ -507,7 +507,7 @@ class MainActivity:ComponentActivity(){
  Text("Permissions",fontSize=19.sp,fontWeight=FontWeight.Bold,color=Ink)
  Surface(color = CardColor,shape=RoundedCornerShape(14.dp)){Column(Modifier.padding(14.dp)){Text("Location",fontWeight=FontWeight.Bold,color=Ink);Text("Used to detect your address and choose saved delivery locations.",fontSize=12.sp,color=Muted);TextButton(onClick={locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}){Text("Grant / refresh location permission")};Text("Notifications",fontWeight=FontWeight.Bold,color=Ink);Text("Used for order updates when supported.",fontSize=12.sp,color=Muted);TextButton(onClick={if(Build.VERSION.SDK_INT>=33)notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)else locationMessage="This Android version does not require notification runtime permission."}){Text("Manage notification permission")};if(locationMessage.isNotBlank())Text(locationMessage,fontSize=12.sp,color=Muted)}}
  }
- else->HomePage(padding,tab,category,{category=it;tab="Menu"},cart,
+ else->HomePage(padding,tab,category,menuItems,{category=it;tab="Menu"},cart,
  onAdd={f,v,price->changeQty(cart,{cart=it},Line(f,v,price,cart[itemKey(f,v)]?.qty?:0),1)},
  onRemove={f,v->val l=cart[itemKey(f,v)]?:return@HomePage;changeQty(cart,{cart=it},l,-1)},
  onMenu={tab="Menu"},
@@ -525,6 +525,7 @@ private fun HomePage(
     padding: PaddingValues,
     tab: String,
     category: String,
+    menuItems: List<Food>,
     onCategory: (String) -> Unit,
     cart: Map<String, Line>,
     onAdd: (Food, String, Int) -> Unit,
