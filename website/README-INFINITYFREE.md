@@ -8,7 +8,7 @@ This is a website/backend-only change. Android source code is not modified. The 
 3. Import database/schema.sql into that database using phpMyAdmin.
 4. Upload the contents of the website directory to htdocs so index.php, assets/ and api/ sit directly inside htdocs.
 5. Copy api/shared/config.example.php to api/shared/config.local.php on the host and fill in your database credentials. Never commit config.local.php.
-6. Visit the HTTPS site, check that the menu loads, then submit a test order and verify customers, orders and order_items in phpMyAdmin. Delete test records before launch.
+6. Add `owner_setup_token` to the private `config.local.php` (at least 32 random characters), visit `/owner/setup.php` over HTTPS once, and create an owner username/password (12+ characters). Immediately delete `owner/setup.php` from hosting and remove the token from config.local.php. Never leave the setup page online.\n7. Visit `/owner/` and sign in. Test menu edits and a test customer order, then delete test records before launch.
 
 ## Routes
 - GET /api/site/menu.php — website menu

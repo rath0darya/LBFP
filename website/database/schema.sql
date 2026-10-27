@@ -38,3 +38,8 @@ INSERT INTO menu_items(name,category,description,price,emoji,sort_order) VALUES
 ('Chicken Manchurian','Chicken','A bold, savoury Indo-Chinese favourite.',190.00,'🍲',70),
 ('Veg Manchurian','Snacks','Vegetable dumplings in a rich sauce.',140.00,'🥢',80)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
+
+CREATE TABLE IF NOT EXISTS owner_users (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, username VARCHAR(80) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL,
+ created_at DATETIME NOT NULL, last_login_at DATETIME NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
