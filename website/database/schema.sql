@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS orders (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, order_number VARCHAR(32) NOT NULL UNIQUE,
  customer_id BIGINT UNSIGNED NOT NULL, status VARCHAR(30) NOT NULL DEFAULT 'Received',
  fulfillment ENUM('Pickup','Delivery') NOT NULL, payment_method ENUM('At Restaurant','Online') NOT NULL DEFAULT 'At Restaurant',
- address VARCHAR(500) NOT NULL DEFAULT '', preferences VARCHAR(500) NOT NULL DEFAULT '',
+ address VARCHAR(500) NOT NULL DEFAULT '', customer_latitude DECIMAL(10,7) NULL, customer_longitude DECIMAL(10,7) NULL, delivery_boy_name VARCHAR(100) NULL, delivery_boy_phone VARCHAR(16) NULL, delivery_notes VARCHAR(500) NULL, preferences VARCHAR(500) NOT NULL DEFAULT '',
  subtotal DECIMAL(10,2) NOT NULL, total DECIMAL(10,2) NOT NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
  CONSTRAINT fk_orders_customer FOREIGN KEY(customer_id) REFERENCES customers(id), INDEX idx_orders_customer_date(customer_id,created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
