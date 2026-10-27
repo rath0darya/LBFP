@@ -89,7 +89,19 @@ private val menu=listOf(
 private fun itemKey(f:Food,v:String)=f.name+"|"+v
 private suspend fun customerApi(path:String,payload:JSONObject?=null):JSONObject=withContext(Dispatchers.IO){
  val c=(URL(CUSTOMER_API_BASE+path).openConnection() as HttpURLConnection).apply{requestMethod=if(payload==null)"GET" else "POST";connectTimeout=12000;readTimeout=18000;setRequestProperty("Accept","application/json");if(payload!=null){doOutput=true;setRequestProperty("Content-Type","application/json; charset=utf-8")}}
- try{if(payload!=null)c.outputStream.use{it.write(payload.toString().toByteArray(Charsets.UTF_8))};val code=c.responseCode;val stream=if(code in 200..299)c.inputStream else c.errorStream;val j=JSONObject(stream?.bufferedReader()?.use{it.readText()}?:"{}");if(code !in 200..299||!j.optBoolean("ok",false))throw IllegalStateException(j.optString("message","Restaurant server unavailable."));j}finally{c.disconnect()}
+ try{
+  if(payload!=null)c.outputStream.use{it.write(payload.toString().toByteArray(Charsets.UTF_8))}
+  val code=c.responseCode
+  val stream=if(code in 200..299)c.inputStream else c.errorStream
+  val raw=stream?.bufferedReader()?.use{it.readText()}?.trim().orEmpty()
+  if(raw.isBlank())throw IllegalStateException("Restaurant API returned an empty response (HTTP $code). Check that the latest website/api files are uploaded and api/shared/config.local.php has valid database credentials.")
+  val j=try{JSONObject(raw)}catch(e:Exception){
+   val hint=if(raw.startsWith("<"))" The server returned HTML/PHP error output." else ""
+   throw IllegalStateException("Restaurant API returned invalid JSON (HTTP $code).$hint Check the hosting PHP error log and database configuration.")
+  }
+  if(code !in 200..299||!j.optBoolean("ok",false))throw IllegalStateException(j.optString("message","Restaurant server returned HTTP $code."))
+  j
+ }finally{c.disconnect()}
 }
 private fun foodPhoto(f:Food):String {
  val id = when(f.name) {
