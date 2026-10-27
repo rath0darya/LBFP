@@ -1,35 +1,25 @@
-# Laddu Bhai Food Point website — InfinityFree setup
+# Laddu Bhai Food Point — InfinityFree deployment
 
-The website has two separate experiences backed by the same InfinityFree MySQL database:
+- Customer storefront: `/index.php` (no owner/admin links shown to customers).
+- Private restaurant owner dashboard: `/owner.php`.
+- Website backend and owner management use the InfinityFree MySQL database. Android app source is unchanged.
 
-- **Customer storefront:** `/index.php` — menu, cart, checkout and order lookup.
-- **Restaurant owner portal:** `/owner/` — secure sign-in, incoming orders and customer/order details, status management, menu editing, price changes and availability controls.
+## Deploy / update
 
-Android source is unchanged. The `/api/customer/*` namespace is reserved for future customer-app integration and is not connected to the Android app yet.
+1. Upload the contents of `website/` directly into `htdocs/`.
+2. Create the MySQL database in InfinityFree and import `database/schema.sql` if setting up a fresh database.
+3. For an existing database, run `database/owner-dashboard-migration.sql` once in phpMyAdmin. It adds GPS coordinates and delivery-person assignment fields. Do not run it twice.
+4. Copy `api/shared/config.example.php` to `api/shared/config.local.php` on the server and enter the real MySQL host, database name, username and password. Never commit this private file.
+5. Ensure at least one row exists in `owner_users`. Passwords must be generated with PHP `password_hash('your-password', PASSWORD_DEFAULT)`; never store plain text.
+6. Visit `/owner.php` and sign in. Keep HTTPS enabled.
 
-## Deploy on InfinityFree
+## Owner dashboard features
 
-1. Create an InfinityFree hosting account/domain and enable HTTPS.
-2. Create a MySQL database in the control panel and copy the exact host, database name, username and password.
-3. Import `database/schema.sql` in phpMyAdmin. The schema creates `owner_users` as well as customer, menu, order and rate-limit tables.
-4. Upload the contents of `website/` into `htdocs`, so `index.php`, `owner/`, `assets/`, and `api/` sit directly inside `htdocs`.
-5. Copy `api/shared/config.example.php` to `api/shared/config.local.php` on the host. Enter the real database credentials and replace `owner_setup_token` with a private random secret of at least 32 characters. Never commit `config.local.php`.
-6. Open `/owner/setup.php` over HTTPS once. Enter the setup token, choose a username (4–80 allowed characters) and a password of at least 12 characters.
-7. **Immediately delete `owner/setup.php` from the hosting account** and remove `owner_setup_token` from `config.local.php`. Do not leave the setup page on the public server.
-8. Visit `/owner/` and sign in. Test a customer order, update its status, edit a menu price and availability, and verify the customer website reflects the changes. Remove test orders before launch.
+- Customer name, phone, email, delivery address, optional GPS coordinates and food preferences.
+- Order number, date, pickup/delivery method, payment preference, each ordered item, quantity, saved unit price, line total, subtotal and exact stored customer total.
+- Assign a delivery person manually with their name and phone, add delivery notes, open the customer location in Google Maps, and update order status.
+- Filter/search orders and toggle menu item availability.
 
-## Routes
+## Notes
 
-- `GET /api/site/menu.php` — customer website menu
-- `POST /api/site/orders.php` — create a website order
-- `GET /api/site/orders.php?phone=...` — recent orders lookup
-- `GET /api/customer/menu.php` and `POST/GET /api/customer/orders.php` — separate API namespace reserved for later Android integration
-- `/api/owner/manage.php` — owner session API
-- `/owner/` — owner dashboard
-- `/owner/setup.php` — one-time setup only; delete from hosting immediately after use
-
-## Security and production notes
-
-Customer name, phone, email, address, food preferences, orders and order items are stored in MySQL. Owner actions require a server-side PHP session and CSRF token; passwords are stored as PHP password hashes. Use HTTPS and keep the database config private.
-
-Phone-only customer order lookup is not strong identity verification. Add OTP/customer authentication before exposing sensitive order history publicly. The “Online” payment selection is only a preference; no payment gateway is integrated and the site must not collect card details. Example menu items/prices are placeholders and must be updated before launch.
+The website saves order prices server-side from the menu price at order time, so the owner dashboard shows the same saved total returned to the customer. Current checkout has no delivery fee, so the displayed delivery fee is ₹0. Online payment is a preference only; no payment gateway is integrated. Customer GPS is optional and only captured when the customer taps the location button and grants browser permission. Customer order lookup by phone alone is not strong identity verification.
