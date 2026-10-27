@@ -32,6 +32,30 @@ jobs:
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/lbfp/release.jks"
           echo "LBFP_KEYSTORE_PATH=$RUNNER_TEMP/lbfp/release.jks" >> "$GITHUB_ENV"
           keytool -list -keystore "$RUNNER_TEMP/lbfp/release.jks" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null
+      - name: Prepare exact app icon and in-app logo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          source = Path("temp/AppIcon.png")
+          if not source.is_file():
+              raise SystemExit("Required source image temp/AppIcon.png is missing")
+          image = Image.open(source).convert("RGBA")
+          res = Path("app/src/main/res")
+          (res / "drawable-nodpi").mkdir(parents=True, exist_ok=True)
+          image.save(res / "drawable-nodpi/app_logo.png", format="PNG")
+          # Use the supplied artwork unchanged; resize only for Android launcher density variants.
+          for folder, size in [("mipmap-mdpi",48),("mipmap-hdpi",72),("mipmap-xhdpi",96),("mipmap-xxhdpi",144),("mipmap-xxxhdpi",192)]:
+              target = res / folder
+              target.mkdir(parents=True, exist_ok=True)
+              icon = image.resize((size,size), Image.Resampling.LANCZOS)
+              icon.save(target / "ic_launcher.png", format="PNG")
+              icon.save(target / "ic_launcher_round.png", format="PNG")
+          # The existing adaptive-icon XML would override the provided image on Android 8+.
+          # Remove it so Android uses the exact supplied launcher artwork on every density.
+          for path in (res / "mipmap-anydpi-v26/ic_launcher.xml", res / "mipmap-anydpi-v26/ic_launcher_round.xml"):
+              if path.exists(): path.unlink()
+          PY
       - name: Build signed APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
