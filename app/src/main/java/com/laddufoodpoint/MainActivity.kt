@@ -76,7 +76,7 @@ private data class Food(val name:String,val category:String,val single:Int,val p
 private data class Line(val food:Food,val variant:String,val price:Int,val qty:Int)
 private data class SavedAddress(val label:String,val details:String,val landmark:String="",val addressType:String="Other",val latitude:Double?=null,val longitude:Double?=null)
 private data class OrderRecord(val id:String,val total:Int,val description:String,val customerName:String,val phone:String,val address:String,val fulfillment:String,val paymentMethod:String,val itemsJson:String,val itemTotal:Int,val deliveryFee:Int,val packagingFee:Int,val distanceKm:Double,val preferences:String,val status:String,val createdAt:Long)
-private const val CUSTOMER_API_BASE = "https://homeconnect.freedev.app/owner/api/customer/"
+private const val CUSTOMER_API_BASE = "https://homeconnect.freedev.app/api/customer/"
 private const val RESTAURANT_MAP_URL = "https://maps.app.goo.gl/hc9ea46RRy5WBW9t6?g_st=ac"
 private const val RESTAURANT_ADDRESS = "12-11-692, Warasiguda X Road, Secunderabad, Padmarao Nagar, Hyderabad"
 private val menu=listOf(
